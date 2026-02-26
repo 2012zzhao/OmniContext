@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniContext</title>
+  <script type="module" crossorigin src="/assets/popup-CLLik16H.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/extractor-D3HU5yfN.js">
+  <link rel="stylesheet" crossorigin href="/assets/popup-CsLZSItk.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>🧠 OmniContext</h1>
+      <span id="current-page" class="current-page">检测中...</span>
+    </header>
+
+    <main class="main">
+      <div id="session-list" class="session-list">
+        <div class="loading">加载中...</div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <button id="export-btn" class="btn btn-secondary">📤 导出</button>
+      <button id="refresh-btn" class="btn btn-primary">🔄 刷新</button>
+    </footer>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>

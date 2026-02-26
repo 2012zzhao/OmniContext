@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "OmniContext",
+  "version": "1.0.0",
+  "description": "跨平台AI对话上下文管理工具 - 在不同AI助手间共享记忆",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://www.doubao.com/*",
+    "https://yuanbao.tencent.com/*",
+    "https://claude.ai/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    }
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/index.ts-loader-BAXNg40I.js"
+      ],
+      "matches": [
+        "https://www.doubao.com/*",
+        "https://yuanbao.tencent.com/*",
+        "https://claude.ai/*"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "https://claude.ai/*",
+        "https://www.doubao.com/*",
+        "https://yuanbao.tencent.com/*"
+      ],
+      "resources": [
+        "assets/extractor-D3HU5yfN.js",
+        "assets/index.ts-DATNxMne.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}
