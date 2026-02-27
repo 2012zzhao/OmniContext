@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/index.ts-loader-BwPIfADq.js"
+        "assets/index.ts-loader-BSE8vXwy.js"
       ],
       "matches": [
         "https://www.doubao.com/*",
@@ -51,7 +51,7 @@
       ],
       "resources": [
         "assets/extractor-Cw_yo6D4.js",
-        "assets/index.ts-hQjB9jcT.js"
+        "assets/index.ts-Cm4EgVoe.js"
       ],
       "use_dynamic_url": false
     }

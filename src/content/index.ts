@@ -11,6 +11,18 @@ function log(...args: any[]) {
 let currentPlatform: Platform | null = null;
 let currentSessionId: string | null = null;
 let lastMessages: Message[] = [];
+let captureInterval: number | null = null;
+let isContextValid = true;
+
+// Check if extension context is still valid
+function isExtensionContextValid(): boolean {
+  try {
+    // This will throw if context is invalidated
+    return !!chrome.runtime.id;
+  } catch {
+    return false;
+  }
+}
 
 function init() {
   try {
@@ -46,7 +58,20 @@ function startCapturing() {
     tryCapture();
   }, 2000);
 
-  setInterval(tryCapture, 3000);
+  captureInterval = window.setInterval(() => {
+    if (!isExtensionContextValid()) {
+      if (isContextValid) {
+        isContextValid = false;
+        log('Extension context invalidated. Stopping capture.');
+        if (captureInterval) {
+          clearInterval(captureInterval);
+          captureInterval = null;
+        }
+      }
+      return;
+    }
+    tryCapture();
+  }, 3000);
 }
 
 function tryCapture() {
@@ -73,6 +98,15 @@ function tryCapture() {
 async function saveSession() {
   if (!currentPlatform || !currentSessionId) return;
 
+  // Check context before attempting save
+  if (!isExtensionContextValid()) {
+    if (isContextValid) {
+      isContextValid = false;
+      log('Extension context invalidated. Stopping save.');
+    }
+    return;
+  }
+
   try {
     const extractor = createMessageExtractor(currentPlatform);
     const title = extractor.extractTitle();
@@ -95,8 +129,16 @@ async function saveSession() {
 
     await sessionStorage.saveSession(session);
     log('✓ Saved:', title, `(${lastMessages.length}条消息)`);
-  } catch (err) {
-    console.error('[OmniContext] Save failed:', err);
+  } catch (err: any) {
+    // Handle extension context invalidated gracefully
+    if (err?.message?.includes('Extension context invalidated')) {
+      if (isContextValid) {
+        isContextValid = false;
+        log('Extension context invalidated. Please refresh the page.');
+      }
+    } else {
+      console.error('[OmniContext] Save failed:', err);
+    }
   }
 }
 
