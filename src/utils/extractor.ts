@@ -236,55 +236,81 @@ export function createMessageExtractor(platform: Platform): MessageExtractor {
 
 // Debug function to help identify selectors
 export function debugPlatformElements(platform: Platform): void {
-  console.log(`[OmniContext] Debugging ${platform}...`);
+  try {
+    console.log(`[OmniContext] Debugging ${platform}...`);
 
-  const config = PLATFORM_CONFIGS[platform];
+    const config = PLATFORM_CONFIGS[platform];
+    if (!config) {
+      console.log('No config found for platform:', platform);
+      return;
+    }
 
-  // Check title selectors
-  console.log('=== Title Selectors ===');
-  for (const selector of config.titleSelectors) {
-    const el = document.querySelector(selector);
-    console.log(`${selector}: ${el ? '✓' : '✗'} ${el?.textContent?.slice(0, 50) || ''}`);
+    // Check title selectors
+    console.log('=== Title Selectors ===');
+    for (const selector of config.titleSelectors) {
+      try {
+        const el = document.querySelector(selector);
+        console.log(`${selector}: ${el ? '✓' : '✗'} ${el?.textContent?.slice(0, 50) || ''}`);
+      } catch (e) {
+        console.log(`${selector}: 选择器错误`);
+      }
+    }
+
+    // Check container
+    console.log('=== Message Container ===');
+    const container = document.querySelector(config.messageSelectors.container);
+    console.log(`Container found: ${container ? '✓' : '✗'}`);
+
+    // Check user messages
+    console.log('=== User Messages ===');
+    try {
+      const userMessages = document.querySelectorAll(config.messageSelectors.user);
+      console.log(`Found ${userMessages.length} user messages`);
+      userMessages.forEach((el, i) => {
+        if (i < 3) {
+          console.log(`  [${i}] ${el.className?.slice(0, 50)}: ${el.textContent?.slice(0, 50)}`);
+        }
+      });
+    } catch (e) {
+      console.log('User messages check failed:', e);
+    }
+
+    // Check assistant messages
+    console.log('=== Assistant Messages ===');
+    try {
+      const assistantMessages = document.querySelectorAll(config.messageSelectors.assistant);
+      console.log(`Found ${assistantMessages.length} assistant messages`);
+      assistantMessages.forEach((el, i) => {
+        if (i < 3) {
+          console.log(`  [${i}] ${el.className?.slice(0, 50)}: ${el.textContent?.slice(0, 50)}`);
+        }
+      });
+    } catch (e) {
+      console.log('Assistant messages check failed:', e);
+    }
+
+    // Try to find any element containing common chat text patterns
+    console.log('=== Auto-detect Attempt ===');
+    try {
+      const allElements = document.querySelectorAll('div');
+      const candidates = Array.from(allElements).filter(el => {
+        const text = el.textContent || '';
+        return text.length > 20 && text.length < 500 &&
+               (el.className?.toLowerCase().includes('message') ||
+                el.className?.toLowerCase().includes('chat') ||
+                el.className?.toLowerCase().includes('bubble'));
+      }).slice(0, 5);
+
+      console.log('Possible message elements:');
+      candidates.forEach((el, i) => {
+        console.log(`  [${i}] class="${el.className}" text="${el.textContent?.slice(0, 80)}"`);
+      });
+    } catch (e) {
+      console.log('Auto-detect failed:', e);
+    }
+
+    console.log('=== End Debug ===');
+  } catch (err) {
+    console.error('[OmniContext] Debug function error:', err);
   }
-
-  // Check container
-  console.log('=== Message Container ===');
-  const container = document.querySelector(config.messageSelectors.container);
-  console.log(`Container found: ${container ? '✓' : '✗'}`);
-
-  // Check user messages
-  console.log('=== User Messages ===');
-  const userMessages = document.querySelectorAll(config.messageSelectors.user);
-  console.log(`Found ${userMessages.length} user messages`);
-  userMessages.forEach((el, i) => {
-    if (i < 3) {
-      console.log(`  [${i}] ${el.className?.slice(0, 50)}: ${el.textContent?.slice(0, 50)}`);
-    }
-  });
-
-  // Check assistant messages
-  console.log('=== Assistant Messages ===');
-  const assistantMessages = document.querySelectorAll(config.messageSelectors.assistant);
-  console.log(`Found ${assistantMessages.length} assistant messages`);
-  assistantMessages.forEach((el, i) => {
-    if (i < 3) {
-      console.log(`  [${i}] ${el.className?.slice(0, 50)}: ${el.textContent?.slice(0, 50)}`);
-    }
-  });
-
-  // Try to find any element containing common chat text patterns
-  console.log('=== Auto-detect Attempt ===');
-  const allElements = document.querySelectorAll('div');
-  const candidates = Array.from(allElements).filter(el => {
-    const text = el.textContent || '';
-    return text.length > 20 && text.length < 500 &&
-           (el.className?.toLowerCase().includes('message') ||
-            el.className?.toLowerCase().includes('chat') ||
-            el.className?.toLowerCase().includes('bubble'));
-  }).slice(0, 5);
-
-  console.log('Possible message elements:');
-  candidates.forEach((el, i) => {
-    console.log(`  [${i}] class="${el.className}" text="${el.textContent?.slice(0, 80)}"`);
-  });
 }
