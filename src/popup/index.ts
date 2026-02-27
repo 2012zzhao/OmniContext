@@ -22,6 +22,9 @@ const toastEl = document.getElementById('toast')!;
 let currentPlatform: Platform | null = null;
 let allTags: Tag[] = [];
 
+// Track collapsed state of each platform (persisted in session)
+const collapsedPlatforms = new Set<string>();
+
 // Initialize
 async function init() {
   // Detect current platform
@@ -100,15 +103,16 @@ function renderPlatformGroupWithHtml(platform: Platform, sessionHtmls: string[])
   const icon = PLATFORM_ICONS[platform];
   const name = formatPlatformName(platform);
   const isCurrent = currentPlatform === platform;
+  const isCollapsed = collapsedPlatforms.has(platform);
 
   return `
     <div class="platform-group">
-      <div class="platform-header" data-platform="${platform}">
+      <div class="platform-header ${isCollapsed ? 'collapsed' : ''}" data-platform="${platform}">
         ${icon} ${name}
         ${isCurrent ? '<span style="margin-left: 8px; font-size: 10px; background: #1890ff; color: white; padding: 2px 6px; border-radius: 4px;">当前</span>' : ''}
         <span class="platform-count">${sessionHtmls.length}个会话</span>
       </div>
-      <div class="platform-sessions">
+      <div class="platform-sessions" style="display: ${isCollapsed ? 'none' : 'block'}">
         ${sessionHtmls.join('')}
       </div>
     </div>
@@ -192,7 +196,17 @@ function bindSessionEvents() {
   // Platform header toggle
   document.querySelectorAll('.platform-header').forEach(header => {
     header.addEventListener('click', () => {
+      const platform = header.getAttribute('data-platform') as Platform;
       header.classList.toggle('collapsed');
+      const isNowCollapsed = header.classList.contains('collapsed');
+
+      // Track collapsed state
+      if (isNowCollapsed) {
+        collapsedPlatforms.add(platform);
+      } else {
+        collapsedPlatforms.delete(platform);
+      }
+
       const sessions = header.nextElementSibling as HTMLElement;
       if (sessions) {
         sessions.style.display = sessions.style.display === 'none' ? 'block' : 'none';
