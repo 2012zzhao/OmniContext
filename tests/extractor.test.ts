@@ -99,14 +99,20 @@ describe('extractor', () => {
 
   describe('MessageExtractor.extractMessages', () => {
     it('should extract messages from DOM', () => {
-      // Create mock message elements
+      // Create mock message elements that match Doubao's CSS Module selectors
+      // User message has bg-s-color-bg-trans class, content is in container-* element
+      // Assistant message has no bg-s-color-bg-trans, content is in container-* element
       const container = document.createElement('div');
       container.innerHTML = `
-        <div class="message user">
-          <div class="content">Hello AI</div>
-        </div>
-        <div class="message assistant">
-          <div class="content">Hello User</div>
+        <div class="message-list-abc123">
+          <div class="message-block-container-xyz" data-msg-id="1">
+            <div class="bg-s-color-bg-trans-abc">
+              <div class="container-def">Hello AI</div>
+            </div>
+          </div>
+          <div class="message-block-container-xyz" data-msg-id="2">
+            <div class="answer-content-ghi">Hello User</div>
+          </div>
         </div>
       `;
       document.body.appendChild(container);
