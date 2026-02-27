@@ -1,7 +1,8 @@
 import { sessionStorage } from '../storage/session-storage';
+import { tagStorage } from '../storage/tag-storage';
 import { formatSessionForInjection } from '../utils/formatter';
 import { formatPlatformName, detectPlatform } from '../utils/extractor';
-import type { Platform, Session } from '../types';
+import type { Platform, Session, Tag } from '../types';
 
 // Platform icons
 const PLATFORM_ICONS: Record<Platform, string> = {
@@ -19,6 +20,7 @@ const toastEl = document.getElementById('toast')!;
 
 // State
 let currentPlatform: Platform | null = null;
+let allTags: Tag[] = [];
 
 // Initialize
 async function init() {
@@ -53,6 +55,9 @@ function updateCurrentPage() {
 async function loadSessions() {
   sessionListEl.innerHTML = '<div class="loading">加载中...</div>';
 
+  // Load all tags
+  allTags = await tagStorage.getAllTags();
+
   const sessions = await sessionStorage.getAllSessions();
 
   if (sessions.length === 0) {
@@ -75,16 +80,23 @@ async function loadSessions() {
     return acc;
   }, {} as Record<Platform, Session[]>);
 
-  // Render
-  sessionListEl.innerHTML = Object.entries(grouped)
-    .map(([platform, platformSessions]) => renderPlatformGroup(platform as Platform, platformSessions))
-    .join('');
+  // Render (async - get tags for each session)
+  const platformHtmls = await Promise.all(
+    Object.entries(grouped).map(async ([platform, platformSessions]) => {
+      const sessionHtmls = await Promise.all(
+        platformSessions.map(session => renderSessionItemWithTags(session))
+      );
+      return renderPlatformGroupWithHtml(platform as Platform, sessionHtmls);
+    })
+  );
+
+  sessionListEl.innerHTML = platformHtmls.join('');
 
   // Bind events
   bindSessionEvents();
 }
 
-function renderPlatformGroup(platform: Platform, sessions: Session[]): string {
+function renderPlatformGroupWithHtml(platform: Platform, sessionHtmls: string[]): string {
   const icon = PLATFORM_ICONS[platform];
   const name = formatPlatformName(platform);
   const isCurrent = currentPlatform === platform;
@@ -94,26 +106,37 @@ function renderPlatformGroup(platform: Platform, sessions: Session[]): string {
       <div class="platform-header" data-platform="${platform}">
         ${icon} ${name}
         ${isCurrent ? '<span style="margin-left: 8px; font-size: 10px; background: #1890ff; color: white; padding: 2px 6px; border-radius: 4px;">当前</span>' : ''}
-        <span class="platform-count">${sessions.length}个会话</span>
+        <span class="platform-count">${sessionHtmls.length}个会话</span>
       </div>
       <div class="platform-sessions">
-        ${sessions.map(session => renderSessionItem(session)).join('')}
+        ${sessionHtmls.join('')}
       </div>
     </div>
   `;
 }
 
-function renderSessionItem(session: Session): string {
+async function renderSessionItemWithTags(session: Session): Promise<string> {
+  const sessionTags = await tagStorage.getSessionTags(session.id);
+  const tagObjects = allTags.filter(t => sessionTags.includes(t.id));
+  return renderSessionItem(session, tagObjects);
+}
+
+function renderSessionItem(session: Session, tags: Tag[]): string {
   const date = new Date(session.updatedAt).toLocaleDateString('zh-CN');
+  const tagsHtml = tags.map(tag =>
+    `<span class="tag" style="background: ${tag.color}">${escapeHtml(tag.name)}</span>`
+  ).join('');
 
   return `
     <div class="session-item" data-id="${session.id}">
       <div class="session-info">
         <div class="session-title">${escapeHtml(session.title)}</div>
+        <div class="session-tags">${tagsHtml}</div>
         <div class="session-meta">${date} · ${session.messageCount}条消息</div>
       </div>
       <div class="session-actions">
         <button class="btn-icon copy" title="复制上下文" data-action="copy">📋</button>
+        <button class="btn-icon tag-btn" title="管理标签" data-action="tags">🏷️</button>
         <button class="btn-icon edit" title="编辑标题" data-action="edit">✏️</button>
         <button class="btn-icon delete" title="删除" data-action="delete">🗑️</button>
       </div>
@@ -140,6 +163,17 @@ function bindSessionEvents() {
       const id = item?.getAttribute('data-id');
       if (id) {
         await handleEdit(id);
+      }
+    });
+  });
+
+  // Tag buttons
+  document.querySelectorAll('[data-action="tags"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const item = (e.target as HTMLElement).closest('.session-item');
+      const id = item?.getAttribute('data-id');
+      if (id) {
+        await handleManageTags(id);
       }
     });
   });
@@ -201,6 +235,51 @@ async function handleEdit(sessionId: string) {
     await loadSessions();
     showToast('标题已更新');
   }
+}
+
+async function handleManageTags(sessionId: string) {
+  const session = await sessionStorage.getSession(sessionId);
+  if (!session) return;
+
+  // Get current tags for this session
+  const sessionTagIds = await tagStorage.getSessionTags(sessionId);
+  const allTagsList = await tagStorage.getAllTags();
+
+  // Show simple prompt-based UI for now
+  const options = allTagsList.map((tag, index) =>
+    `${index + 1}. ${tag.name} ${sessionTagIds.includes(tag.id) ? '(已添加)' : ''}`
+  ).join('\n');
+
+  const choice = prompt(
+    `管理 "${session.title}" 的标签:\n\n${options}\n\n输入编号添加/删除标签，或输入新标签名称创建：`
+  );
+
+  if (!choice) return;
+
+  const numChoice = parseInt(choice, 10);
+  if (!isNaN(numChoice) && numChoice > 0 && numChoice <= allTagsList.length) {
+    // Toggle existing tag
+    const selectedTag = allTagsList[numChoice - 1];
+    if (sessionTagIds.includes(selectedTag.id)) {
+      await tagStorage.removeTagFromSession(sessionId, selectedTag.id);
+      showToast(`已移除标签: ${selectedTag.name}`);
+    } else {
+      await tagStorage.addTagToSession(sessionId, selectedTag.id);
+      showToast(`已添加标签: ${selectedTag.name}`);
+    }
+  } else {
+    // Create new tag
+    const color = '#1890ff'; // Default blue
+    const newTag = await tagStorage.createTag(choice.trim(), color);
+    if (newTag) {
+      await tagStorage.addTagToSession(sessionId, newTag.id);
+      showToast(`已创建并添加标签: ${newTag.name}`);
+    } else {
+      showToast('标签已存在或创建失败');
+    }
+  }
+
+  await loadSessions();
 }
 
 async function handleDelete(sessionId: string) {
