@@ -157,22 +157,117 @@ class PlatformMessageExtractor implements MessageExtractor {
     messageBlocks.forEach((block, index) => {
       // Check if this block has user indicator (bg-s-color-bg-trans class)
       const userElement = block.querySelector('[class*="bg-s-color-bg-trans"]');
-      const contentElement = block.querySelector('[class*="container-"]');
 
-      if (contentElement) {
-        const content = this.extractTextContent(contentElement);
-        if (content && content.length > 0) {
-          messages.push({
-            id: `doubao-msg-${index}`,
-            role: userElement ? 'user' : 'assistant',
-            content,
-            timestamp: Date.now(),
-          });
+      if (userElement) {
+        // User message - extract normally
+        const contentElement = block.querySelector('[class*="container-"]');
+        if (contentElement) {
+          const content = this.extractTextContent(contentElement);
+          if (content && content.length > 0) {
+            messages.push({
+              id: `doubao-msg-${index}`,
+              role: 'user',
+              content,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      } else {
+        // Assistant message - need to distinguish thinking from final answer
+        // Try to find final answer first (usually after thinking section)
+        const finalAnswerElement = block.querySelector('[class*="answer-content"], [class*="final-answer"], [class*="message-content"]:last-child');
+
+        if (finalAnswerElement) {
+          const content = this.extractTextContent(finalAnswerElement);
+          if (content && content.length > 0 && !content.includes('思考中')) {
+            messages.push({
+              id: `doubao-msg-${index}`,
+              role: 'assistant',
+              content,
+              timestamp: Date.now(),
+            });
+            return;
+          }
+        }
+
+        // Fallback: extract all text but filter out thinking section
+        const contentElement = block.querySelector('[class*="container-"]');
+        if (contentElement) {
+          const content = this.extractDoubaoAssistantContent(contentElement);
+          if (content && content.length > 0) {
+            messages.push({
+              id: `doubao-msg-${index}`,
+              role: 'assistant',
+              content,
+              timestamp: Date.now(),
+            });
+          }
         }
       }
     });
 
     return messages;
+  }
+
+  private extractDoubaoAssistantContent(element: Element): string {
+    // For Doubao with thinking mode, we need to:
+    // 1. Find all text content
+    // 2. Filter out thinking sections (usually marked with special classes)
+    // 3. Keep only the final answer
+
+    const allText = element.textContent || '';
+
+    // Check if this contains thinking markers
+    // Common patterns: "思考中...", thinking sections with special styling
+    const thinkingPatterns = [
+      /思考中[\.。]+/,
+      / thinking[\.。]+/i,
+    ];
+
+    // If there's a clear separator between thinking and answer, use it
+    const separators = ['</think>', '正式回答：', '回答：', '最终答案：'];
+
+    for (const separator of separators) {
+      const parts = allText.split(separator);
+      if (parts.length > 1) {
+        // Return the part after the last separator
+        return parts[parts.length - 1].trim();
+      }
+    }
+
+    // Try to find content after thinking section by looking for structural indicators
+    const children = Array.from(element.children);
+    let foundThinking = false;
+    let finalContent = '';
+
+    for (const child of children) {
+      const text = child.textContent || '';
+
+      // Skip thinking indicators
+      if (thinkingPatterns.some(p => p.test(text))) {
+        foundThinking = true;
+        continue;
+      }
+
+      // Skip elements that look like thinking sections (often have special styling)
+      const className = child.className || '';
+      if (className.includes('thinking') || className.includes('thought')) {
+        foundThinking = true;
+        continue;
+      }
+
+      // If we've passed the thinking section, collect content
+      if (foundThinking && text.length > 0) {
+        finalContent += text + '\n';
+      }
+    }
+
+    if (finalContent.length > 0) {
+      return finalContent.trim();
+    }
+
+    // Fallback: return all content if we can't distinguish
+    return this.extractTextContent(element);
   }
 
   private extractMessagesFromDocument(): Message[] {
