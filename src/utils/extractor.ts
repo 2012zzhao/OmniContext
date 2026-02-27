@@ -30,11 +30,19 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
   },
   yuanbao: {
     hostname: 'yuanbao.tencent.com',
-    titleSelectors: ['.session-title', '.chat-title', '.active .title', '[data-testid="session-title"]'],
+    titleSelectors: [
+      '.session-title',
+      '.chat-title',
+      '.active .title',
+      '[data-testid="session-title"]',
+      '[class*="chat-title"]',
+      '[class*="session-title"]',
+      'title',
+    ],
     messageSelectors: {
-      container: '.message-container, .chat-content, .conversation-list',
-      user: '.user-msg, .message.user, [data-role="user"]',
-      assistant: '.assistant-msg, .message.assistant, .bot-reply, [data-role="assistant"]',
+      container: '[class*="message-container"], [class*="chat-content"], [class*="conversation-list"], [class*="message-list"], [class*="chat-list"]',
+      user: '[class*="user-message"], [class*="user-msg"], [data-role="user"], [class*="message-user"]',
+      assistant: '[class*="assistant-message"], [class*="assistant-msg"], [class*="bot-message"], [data-role="assistant"], [class*="message-assistant"]',
     },
   },
   claude: {
