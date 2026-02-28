@@ -68,6 +68,7 @@ async function init() {
   searchInput.addEventListener('input', debounce(handleSearch, 300));
   searchClear.addEventListener('click', clearSearch);
   filterPlatform.addEventListener('change', handleFilterChange);
+  filterTags.addEventListener('change', handleTagFilterChange);
 }
 
 function handleSearch() {
@@ -85,6 +86,12 @@ function clearSearch() {
 
 function handleFilterChange() {
   selectedPlatform = filterPlatform.value as Platform | '';
+  renderSessions();
+}
+
+function handleTagFilterChange() {
+  // Get all selected options from multi-select
+  selectedTagIds = Array.from(filterTags.selectedOptions).map(opt => opt.value);
   renderSessions();
 }
 
