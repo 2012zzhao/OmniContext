@@ -105,21 +105,20 @@ async function saveSession() {
 
     if (lastMessages.length === 0) return;
 
+    const now = Date.now();
     const session: Session = {
       id: currentSessionId,
       platform: currentPlatform,
       title: title || '未命名对话',
       sourceUrl: window.location.href,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
       messages: lastMessages,
       messageCount: lastMessages.length,
     };
 
-    const existing = await sessionStorage.getSession(currentSessionId);
-    if (existing) session.createdAt = existing.createdAt;
-
-    await sessionStorage.saveSession(session);
+    // Use optimized save that doesn't double-read
+    await sessionStorage.saveSessionOptimized(session);
     log('✓ Saved:', title, `(${lastMessages.length}条消息)`);
   } catch (err: any) {
     // Handle extension context invalidated gracefully

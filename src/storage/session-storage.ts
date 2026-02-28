@@ -23,6 +23,27 @@ export class SessionStorage {
   }
 
   /**
+   * Optimized save - preserves createdAt without double-reading
+   */
+  async saveSessionOptimized(session: Session): Promise<void> {
+    const sessions = await this.getAllSessions();
+    const existingIndex = sessions.findIndex(s => s.id === session.id);
+
+    if (existingIndex >= 0) {
+      // Preserve original createdAt
+      session.createdAt = sessions[existingIndex].createdAt;
+      sessions[existingIndex] = {
+        ...session,
+        updatedAt: Date.now(),
+      };
+    } else {
+      sessions.push(session);
+    }
+
+    await chrome.storage.local.set({ [STORAGE_KEY]: sessions });
+  }
+
+  /**
    * Get a session by ID
    */
   async getSession(id: string): Promise<Session | null> {
