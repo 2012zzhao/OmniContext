@@ -47,11 +47,19 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
   },
   claude: {
     hostname: 'claude.ai',
-    titleSelectors: ['.conversation-title', '[aria-selected="true"] .title', '.chat-title'],
+    titleSelectors: [
+      '.conversation-title',
+      '[aria-selected="true"] .title',
+      '.chat-title',
+      '[class*="conversation-title"]',
+      '[class*="chat-title"]',
+      'h1',
+      'title',
+    ],
     messageSelectors: {
-      container: '.conversation-content, .messages-container',
-      user: '.human-message, .message.human, [data-testid="human-message"]',
-      assistant: '.assistant-message, .message.assistant, [data-testid="assistant-message"]',
+      container: '.conversation-content, .messages-container, [class*="conversation"], [class*="messages"]',
+      user: '.human-message, .message.human, [data-testid="human-message"], [class*="human"], [class*="user-message"]',
+      assistant: '.assistant-message, .message.assistant, [data-testid="assistant-message"], [class*="assistant"], [class*="claude-message"]',
     },
   },
 };
@@ -123,9 +131,17 @@ class PlatformMessageExtractor implements MessageExtractor {
   }
 
   extractMessages(): Message[] {
-    // Special handling for Doubao
+    // Special handling for each platform
     if (this.platform === 'doubao') {
       return this.extractDoubaoMessages();
+    }
+
+    if (this.platform === 'yuanbao') {
+      return this.extractYuanbaoMessages();
+    }
+
+    if (this.platform === 'claude') {
+      return this.extractClaudeMessages();
     }
 
     const messages: Message[] = [];
@@ -276,6 +292,446 @@ class PlatformMessageExtractor implements MessageExtractor {
 
     // Fallback: return all content if we can't distinguish
     return this.extractTextContent(element);
+  }
+
+  private extractYuanbaoMessages(): Message[] {
+    const messages: Message[] = [];
+
+    // Try multiple container patterns for Yuanbao
+    const containerSelectors = [
+      '[class*="message-list"]',
+      '[class*="chat-list"]',
+      '[class*="conversation-list"]',
+      '[class*="message-container"]',
+      '[class*="chat-content"]',
+    ];
+
+    let container: Element | null = null;
+    for (const selector of containerSelectors) {
+      container = document.querySelector(selector);
+      if (container) break;
+    }
+
+    if (!container) {
+      return this.extractYuanbaoFromDocument();
+    }
+
+    // Find all message elements
+    const messageBlocks = container.querySelectorAll('[class*="message"], [class*="chat-item"], [class*="conversation-item"]');
+
+    if (messageBlocks.length === 0) {
+      return this.extractYuanbaoFromDocument();
+    }
+
+    messageBlocks.forEach((block, index) => {
+      const className = block.className || '';
+
+      // Check if user message (usually has "user" or "self" in class)
+      const isUser = /user|self|me|human/i.test(className) ||
+                     block.querySelector('[class*="user"], [class*="self"], [class*="human"]');
+
+      if (isUser) {
+        const content = this.extractYuanbaoUserContent(block);
+        if (content) {
+          messages.push({
+            id: `yuanbao-msg-${index}`,
+            role: 'user',
+            content,
+            timestamp: Date.now(),
+          });
+        }
+      } else {
+        // Assistant message - handle thinking mode
+        const content = this.extractYuanbaoAssistantContent(block);
+        if (content) {
+          messages.push({
+            id: `yuanbao-msg-${index}`,
+            role: 'assistant',
+            content,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    });
+
+    return messages;
+  }
+
+  private extractYuanbaoFromDocument(): Message[] {
+    const messages: Message[] = [];
+
+    // Fallback: search entire document
+    const userSelectors = [
+      '[class*="user-message"]',
+      '[class*="message-user"]',
+      '[class*="self-message"]',
+      '[data-role="user"]',
+    ];
+
+    const assistantSelectors = [
+      '[class*="assistant-message"]',
+      '[class*="message-assistant"]',
+      '[class*="bot-message"]',
+      '[data-role="assistant"]',
+    ];
+
+    // Collect all elements with their roles
+    const allElements: Array<{ el: Element; isUser: boolean }> = [];
+
+    for (const selector of userSelectors) {
+      document.querySelectorAll(selector).forEach(el => {
+        allElements.push({ el, isUser: true });
+      });
+    }
+
+    for (const selector of assistantSelectors) {
+      document.querySelectorAll(selector).forEach(el => {
+        allElements.push({ el, isUser: false });
+      });
+    }
+
+    // Sort by DOM position
+    allElements.sort((a, b) => {
+      const position = a.el.compareDocumentPosition(b.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+
+    allElements.forEach(({ el, isUser }, index) => {
+      const content = isUser
+        ? this.extractYuanbaoUserContent(el)
+        : this.extractYuanbaoAssistantContent(el);
+
+      if (content) {
+        messages.push({
+          id: `yuanbao-msg-${index}`,
+          role: isUser ? 'user' : 'assistant',
+          content,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    return messages;
+  }
+
+  private extractYuanbaoUserContent(element: Element): string {
+    // Try common content selectors
+    const contentSelectors = [
+      '[class*="content"]',
+      '[class*="text"]',
+      '[class*="message-body"]',
+      '.content',
+      'p',
+    ];
+
+    for (const selector of contentSelectors) {
+      const contentEl = element.querySelector(selector);
+      if (contentEl?.textContent?.trim()) {
+        return contentEl.textContent.trim();
+      }
+    }
+
+    return element.textContent?.trim() || '';
+  }
+
+  private extractYuanbaoAssistantContent(element: Element): string {
+    // Yuanbao thinking mode patterns
+    // Try to find the final answer section
+    const answerSelectors = [
+      '[class*="answer"]',
+      '[class*="final"]',
+      '[class*="response"]',
+      '[class*="result"]',
+      '[class*="output"]',
+    ];
+
+    for (const selector of answerSelectors) {
+      const answerEl = element.querySelector(selector);
+      if (answerEl?.textContent?.trim()) {
+        const text = answerEl.textContent.trim();
+        // Make sure it's not just thinking content
+        if (!this.isYuanbaoThinkingContent(text)) {
+          return text;
+        }
+      }
+    }
+
+    // Try to filter thinking content from full text
+    const fullText = element.textContent || '';
+
+    // Common thinking mode markers in Yuanbao
+    const thinkingMarkers = [
+      '思考过程',
+      '思考中',
+      '正在思考',
+      'Think',
+      'Thinking',
+    ];
+
+    // Try to find separator patterns
+    for (const marker of thinkingMarkers) {
+      if (fullText.includes(marker)) {
+        // Try to find content after thinking section
+        const parts = fullText.split(new RegExp(`${marker}[\\s\\S]*?(?=[\n\r]{2}|$)`, 'i'));
+        if (parts.length > 1 && parts[parts.length - 1].trim()) {
+          return parts[parts.length - 1].trim();
+        }
+      }
+    }
+
+    // Check for thinking-related class names and skip them
+    const children = Array.from(element.children);
+    let finalContent = '';
+
+    for (const child of children) {
+      const className = (child.className || '').toLowerCase();
+
+      // Skip thinking sections
+      if (className.includes('thinking') ||
+          className.includes('thought') ||
+          className.includes('reasoning') ||
+          className.includes('process')) {
+        continue;
+      }
+
+      const text = child.textContent?.trim() || '';
+      if (text && !this.isYuanbaoThinkingContent(text)) {
+        finalContent += text + '\n';
+      }
+    }
+
+    if (finalContent.trim()) {
+      return finalContent.trim();
+    }
+
+    // Fallback: return cleaned full text
+    return this.cleanYuanbaoContent(fullText);
+  }
+
+  private isYuanbaoThinkingContent(text: string): boolean {
+    const thinkingPatterns = [
+      /^思考[过程中]/,
+      /^Think(ing)?[:：]/i,
+      /^正在分析/,
+      /^推理过程/,
+    ];
+
+    return thinkingPatterns.some(p => p.test(text.trim()));
+  }
+
+  private cleanYuanbaoContent(text: string): string {
+    // Remove common thinking prefixes
+    const prefixes = [
+      /【思考】[\s\S]*?【回答】/,
+      /<thinking>[\s\S]*?<\/thinking>/gi,
+      /思考过程：[\s\S]*?(?=\n\n|回答)/,
+    ];
+
+    let cleaned = text;
+    for (const prefix of prefixes) {
+      cleaned = cleaned.replace(prefix, '');
+    }
+
+    return cleaned.trim();
+  }
+
+  private extractClaudeMessages(): Message[] {
+    const messages: Message[] = [];
+
+    // Claude.ai specific selectors
+    const containerSelectors = [
+      '[class*="conversation"]',
+      '[class*="messages"]',
+      '[data-testid="conversation"]',
+      '.prose',
+      'main',
+    ];
+
+    let container: Element | null = null;
+    for (const selector of containerSelectors) {
+      container = document.querySelector(selector);
+      if (container) break;
+    }
+
+    if (!container) {
+      return this.extractClaudeFromDocument();
+    }
+
+    // Find message blocks - Claude uses various patterns
+    const messageBlocks = container.querySelectorAll(
+      '[class*="message"], [data-testid*="message"], [class*="turn"]'
+    );
+
+    if (messageBlocks.length === 0) {
+      return this.extractClaudeFromDocument();
+    }
+
+    messageBlocks.forEach((block, index) => {
+      const className = block.className || '';
+      const dataTestId = block.getAttribute('data-testid') || '';
+
+      // Determine if user or assistant
+      const isUser = /human|user/i.test(className + dataTestId) ||
+                     block.querySelector('[class*="human"], [class*="user"]');
+
+      if (isUser) {
+        const content = this.extractClaudeUserContent(block);
+        if (content) {
+          messages.push({
+            id: `claude-msg-${index}`,
+            role: 'user',
+            content,
+            timestamp: Date.now(),
+          });
+        }
+      } else {
+        // Assistant message - handle Extended Thinking
+        const content = this.extractClaudeAssistantContent(block);
+        if (content) {
+          messages.push({
+            id: `claude-msg-${index}`,
+            role: 'assistant',
+            content,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    });
+
+    return messages;
+  }
+
+  private extractClaudeFromDocument(): Message[] {
+    const messages: Message[] = [];
+
+    // Fallback for Claude
+    const allElements: Array<{ el: Element; isUser: boolean }> = [];
+
+    // User messages
+    document.querySelectorAll('[class*="human"], [class*="user-message"]').forEach(el => {
+      allElements.push({ el, isUser: true });
+    });
+
+    // Assistant messages
+    document.querySelectorAll('[class*="assistant"], [class*="claude-message"]').forEach(el => {
+      allElements.push({ el, isUser: false });
+    });
+
+    // Sort by DOM position
+    allElements.sort((a, b) => {
+      const position = a.el.compareDocumentPosition(b.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+
+    allElements.forEach(({ el, isUser }, index) => {
+      const content = isUser
+        ? this.extractClaudeUserContent(el)
+        : this.extractClaudeAssistantContent(el);
+
+      if (content) {
+        messages.push({
+          id: `claude-msg-${index}`,
+          role: isUser ? 'user' : 'assistant',
+          content,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    return messages;
+  }
+
+  private extractClaudeUserContent(element: Element): string {
+    // Claude user messages are usually straightforward
+    const contentSelectors = [
+      '[class*="content"]',
+      '[class*="text"]',
+      '.prose',
+      'p',
+    ];
+
+    for (const selector of contentSelectors) {
+      const contentEl = element.querySelector(selector);
+      if (contentEl?.textContent?.trim()) {
+        return contentEl.textContent.trim();
+      }
+    }
+
+    return element.textContent?.trim() || '';
+  }
+
+  private extractClaudeAssistantContent(element: Element): string {
+    // Claude's Extended Thinking feature puts thinking in special sections
+    // We want to extract only the final response, not the thinking
+
+    // Try to find the main response content (after thinking)
+    const responseSelectors = [
+      '[class*="response"]',
+      '[class*="answer"]',
+      '[class*="content"]:not([class*="thinking"])',
+      '.prose',
+    ];
+
+    for (const selector of responseSelectors) {
+      const responseEl = element.querySelector(selector);
+      if (responseEl?.textContent?.trim()) {
+        const text = responseEl.textContent.trim();
+        if (!this.isClaudeThinkingContent(text)) {
+          return text;
+        }
+      }
+    }
+
+    // Check for thinking block that needs to be filtered
+    const thinkingBlock = element.querySelector(
+      '[class*="thinking"], [class*="thought"], [data-thinking]'
+    );
+
+    if (thinkingBlock) {
+      // Remove thinking block and get remaining content
+      const clone = element.cloneNode(true) as Element;
+      const thinkingInClone = clone.querySelector(
+        '[class*="thinking"], [class*="thought"], [data-thinking]'
+      );
+      if (thinkingInClone) {
+        thinkingInClone.remove();
+      }
+      const remainingText = clone.textContent?.trim();
+      if (remainingText && remainingText.length > 10) {
+        return remainingText;
+      }
+    }
+
+    // Fallback: clean the content
+    return this.cleanClaudeContent(element.textContent || '');
+  }
+
+  private isClaudeThinkingContent(text: string): boolean {
+    // Claude Extended Thinking markers
+    const thinkingPatterns = [
+      /^Thinking[:：]/i,
+      /^Extended thinking/i,
+      /^Let me think/i,
+      /^I need to think/i,
+    ];
+
+    return thinkingPatterns.some(p => p.test(text.trim().slice(0, 50)));
+  }
+
+  private cleanClaudeContent(text: string): string {
+    // Remove Extended Thinking sections
+    const patterns = [
+      /\[Thinking\][\s\S]*?\[\/Thinking\]/gi,
+      /<thinking>[\s\S]*?<\/thinking>/gi,
+      /Thinking:\n[\s\S]*?(?=\n\n|Response|Answer)/i,
+    ];
+
+    let cleaned = text;
+    for (const pattern of patterns) {
+      cleaned = cleaned.replace(pattern, '');
+    }
+
+    return cleaned.trim();
   }
 
   private extractMessagesFromDocument(): Message[] {

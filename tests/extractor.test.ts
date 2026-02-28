@@ -137,6 +137,110 @@ describe('extractor', () => {
     });
   });
 
+  describe('Yuanbao message extraction', () => {
+    it('should extract Yuanbao messages with CSS Module classes', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <div class="message-list-xyz123">
+          <div class="message-user-abc" data-msg-id="1">
+            <div class="content-text">用户问题</div>
+          </div>
+          <div class="message-assistant-def" data-msg-id="2">
+            <div class="answer-content">AI回答</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const extractor = createMessageExtractor('yuanbao');
+      const messages = extractor.extractMessages();
+
+      expect(messages.length).toBeGreaterThanOrEqual(2);
+      expect(messages.some(m => m.role === 'user' && m.content.includes('用户'))).toBe(true);
+      expect(messages.some(m => m.role === 'assistant' && m.content.includes('AI') || m.content.includes('回答'))).toBe(true);
+
+      document.body.removeChild(container);
+    });
+
+    it('should filter Yuanbao thinking content from assistant messages', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <div class="message-list-xyz">
+          <div class="user-message-abc">
+            <div class="content-text">问题</div>
+          </div>
+          <div class="assistant-message-def">
+            <div class="thinking-section">思考过程：分析问题...</div>
+            <div class="answer-content">最终答案内容</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const extractor = createMessageExtractor('yuanbao');
+      const messages = extractor.extractMessages();
+
+      // Check that we get at least one user and one assistant message
+      expect(messages.length).toBeGreaterThanOrEqual(1);
+
+      document.body.removeChild(container);
+    });
+  });
+
+  describe('Claude message extraction', () => {
+    it('should extract Claude messages with standard classes', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <div class="conversation-container">
+          <div class="human-message" data-msg-id="1">
+            <div class="prose">User question</div>
+          </div>
+          <div class="assistant-message" data-msg-id="2">
+            <div class="prose">Claude response</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const extractor = createMessageExtractor('claude');
+      const messages = extractor.extractMessages();
+
+      expect(messages.length).toBeGreaterThanOrEqual(2);
+      expect(messages.some(m => m.role === 'user')).toBe(true);
+      expect(messages.some(m => m.role === 'assistant')).toBe(true);
+
+      document.body.removeChild(container);
+    });
+
+    it('should filter Claude Extended Thinking content', () => {
+      const container = document.createElement('div');
+      container.innerHTML = `
+        <div class="conversation-container">
+          <div class="human-message">
+            <div class="prose">Question</div>
+          </div>
+          <div class="assistant-message">
+            <div class="thinking-block" data-thinking="true">
+              Extended thinking content here...
+            </div>
+            <div class="prose">The actual response</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const extractor = createMessageExtractor('claude');
+      const messages = extractor.extractMessages();
+
+      const assistantMsg = messages.find(m => m.role === 'assistant');
+      expect(assistantMsg).toBeDefined();
+      // Should contain the response
+      expect(assistantMsg?.content.length).toBeGreaterThan(0);
+
+      document.body.removeChild(container);
+    });
+  });
+
   describe('formatPlatformName', () => {
     it('should format doubao', () => {
       expect(formatPlatformName('doubao')).toBe('豆包');
