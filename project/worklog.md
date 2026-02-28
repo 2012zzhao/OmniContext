@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-02-28 元宝与Claude思考模式支持
+
+**摘要：** 完成元宝和Claude平台的思考模式开发，测试用例增至48个
+
+**正文：**
+
+### 元宝平台支持
+- 新增 `extractYuanbaoMessages()` 专用提取方法
+- 支持CSS Modules类名模式匹配
+- 实现思考内容过滤逻辑
+- 回退方案：`extractYuanbaoFromDocument()`
+
+### Claude平台支持
+- 更新选择器适配现代Claude.ai DOM结构
+- 新增 `extractClaudeMessages()` 专用方法
+- 支持 Extended Thinking 功能过滤
+- 回退方案：`extractClaudeFromDocument()`
+
+### 思考模式通用设计
+```
+消息提取 → 检测思考区块 → 克隆DOM → 移除思考内容 → 返回最终回答
+```
+
+### 测试覆盖
+- 新增元宝测试用例：2个
+- 新增Claude测试用例：2个
+- 总测试用例：48个（全部通过）
+
+### 提交记录
+- `ec43865` fix: Update test to match Doubao CSS Module selectors
+- `df3f452` fix: Update Yuanbao selectors to support CSS Modules
+- `f73b99d` feat: Add thinking mode support for Yuanbao and Claude
+
+**待测试：**
+- [ ] 元宝实际对话捕获测试
+- [ ] 元宝思考模式过滤验证
+- [ ] Claude实际对话捕获测试
+- [ ] Claude Extended Thinking过滤验证
+
+---
+
 ## 2026-02-27 标签系统功能完成
 
 **摘要：** 实现会话标签管理功能，支持分类和筛选

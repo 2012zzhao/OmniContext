@@ -4,6 +4,106 @@
 
 ---
 
+## 2026-02-28 思考模式通用架构设计
+
+**摘要：** 设计跨平台思考模式内容过滤方案
+
+**正文：**
+
+### 背景
+主流AI平台（豆包、元宝、Claude）都推出了"思考模式"功能：
+- 豆包：思考功能
+- 元宝：深度思考
+- Claude：Extended Thinking
+
+这些功能会在回答前显示思考过程，但用户注入上下文时通常只需要最终回答。
+
+### 架构设计
+
+```
+┌─────────────────────────────────────────────────────┐
+│              extractMessages()                       │
+│  ┌─────────────────────────────────────────────────┐│
+│  │ if (platform === 'doubao') → extractDoubaoMessages()
+│  │ if (platform === 'yuanbao') → extractYuanbaoMessages()
+│  │ if (platform === 'claude') → extractClaudeMessages()
+│  └─────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────┘
+```
+
+### 各平台思考模式处理
+
+#### 豆包 (Doubao)
+```typescript
+// 选择器
+'[class*="message-block-container"]'
+'[class*="bg-s-color-bg-trans"]'  // 用户标识
+
+// 思考识别
+'[class*="answer-content"], [class*="final-answer"]'
+思考中... | thinking...
+```
+
+#### 元宝 (Yuanbao)
+```typescript
+// 选择器
+'[class*="message-list"], [class*="chat-list"]'
+'[class*="user-message"], [class*="assistant-message"]'
+
+// 思考识别
+思考过程 | 思考中 | 正在思考 | Think | Thinking
+'[class*="thinking"], [class*="thought"], [class*="reasoning"]'
+```
+
+#### Claude
+```typescript
+// 选择器
+'[class*="conversation"], [class*="messages"]'
+'[class*="human"], [class*="assistant"]'
+
+// 思考识别 (Extended Thinking)
+'[class*="thinking"], [class*="thought"], [data-thinking]'
+Thinking: | Extended thinking | Let me think
+<thinking>...</thinking> | [Thinking]...[/Thinking]
+```
+
+### 通用处理流程
+
+```
+1. 查找消息容器
+   ↓
+2. 遍历消息块
+   ↓
+3. 判断角色（用户/助手）
+   ↓
+4. 助手消息 → 检测思考区块
+   ↓
+5. 克隆DOM，移除思考内容
+   ↓
+6. 返回纯净的最终回答
+```
+
+### 方法签名
+
+```typescript
+// 各平台专用提取
+private extractDoubaoMessages(): Message[]
+private extractYuanbaoMessages(): Message[]
+private extractClaudeMessages(): Message[]
+
+// 思考内容识别
+private isDoubaoThinkingContent(text: string): boolean
+private isYuanbaoThinkingContent(text: string): boolean
+private isClaudeThinkingContent(text: string): boolean
+
+// 内容清理
+private extractDoubaoAssistantContent(element: Element): string
+private extractYuanbaoAssistantContent(element: Element): string
+private extractClaudeAssistantContent(element: Element): string
+```
+
+---
+
 ## 2026-02-27 AgenticEngineering 文档体系
 
 **摘要：** 建立面向Agent协作的项目管理规范
