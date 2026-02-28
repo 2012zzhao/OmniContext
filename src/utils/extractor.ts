@@ -40,9 +40,9 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
       'title',
     ],
     messageSelectors: {
-      container: '[class*="message-container"], [class*="chat-content"], [class*="conversation-list"], [class*="message-list"], [class*="chat-list"]',
-      user: '[class*="user-message"], [class*="user-msg"], [data-role="user"], [class*="message-user"]',
-      assistant: '[class*="assistant-message"], [class*="assistant-msg"], [class*="bot-message"], [data-role="assistant"], [class*="message-assistant"]',
+      container: '[class*="agent-chat__list"], [class*="chat-list"], [class*="message-list"]',
+      user: '[class*="bubble--human"], [class*="chat__bubble--human"]',
+      assistant: '[class*="bubble--ai"], [class*="chat__bubble--ai"]',
     },
   },
   claude: {
@@ -297,13 +297,11 @@ class PlatformMessageExtractor implements MessageExtractor {
   private extractYuanbaoMessages(): Message[] {
     const messages: Message[] = [];
 
-    // Try multiple container patterns for Yuanbao
+    // Yuanbao uses agent-chat__list as container, bubble--human/bubble--ai for messages
     const containerSelectors = [
-      '[class*="message-list"]',
+      '[class*="agent-chat__list"]',
       '[class*="chat-list"]',
-      '[class*="conversation-list"]',
-      '[class*="message-container"]',
-      '[class*="chat-content"]',
+      '[class*="message-list"]',
     ];
 
     let container: Element | null = null;
@@ -312,45 +310,38 @@ class PlatformMessageExtractor implements MessageExtractor {
       if (container) break;
     }
 
-    if (!container) {
+    // Find all bubble elements (user and AI)
+    const userBubbles = document.querySelectorAll('[class*="bubble--human"]');
+    const aiBubbles = document.querySelectorAll('[class*="bubble--ai"]');
+
+    if (userBubbles.length === 0 && aiBubbles.length === 0) {
       return this.extractYuanbaoFromDocument();
     }
 
-    // Find all message elements
-    const messageBlocks = container.querySelectorAll('[class*="message"], [class*="chat-item"], [class*="conversation-item"]');
+    // Collect all elements with their roles
+    const allElements: Array<{ el: Element; isUser: boolean }> = [
+      ...Array.from(userBubbles).map(el => ({ el, isUser: true })),
+      ...Array.from(aiBubbles).map(el => ({ el, isUser: false })),
+    ];
 
-    if (messageBlocks.length === 0) {
-      return this.extractYuanbaoFromDocument();
-    }
+    // Sort by DOM position
+    allElements.sort((a, b) => {
+      const position = a.el.compareDocumentPosition(b.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
 
-    messageBlocks.forEach((block, index) => {
-      const className = block.className || '';
+    allElements.forEach(({ el, isUser }, index) => {
+      const content = isUser
+        ? this.extractYuanbaoUserContent(el)
+        : this.extractYuanbaoAssistantContent(el);
 
-      // Check if user message (usually has "user" or "self" in class)
-      const isUser = /user|self|me|human/i.test(className) ||
-                     block.querySelector('[class*="user"], [class*="self"], [class*="human"]');
-
-      if (isUser) {
-        const content = this.extractYuanbaoUserContent(block);
-        if (content) {
-          messages.push({
-            id: `yuanbao-msg-${index}`,
-            role: 'user',
-            content,
-            timestamp: Date.now(),
-          });
-        }
-      } else {
-        // Assistant message - handle thinking mode
-        const content = this.extractYuanbaoAssistantContent(block);
-        if (content) {
-          messages.push({
-            id: `yuanbao-msg-${index}`,
-            role: 'assistant',
-            content,
-            timestamp: Date.now(),
-          });
-        }
+      if (content) {
+        messages.push({
+          id: `yuanbao-msg-${index}`,
+          role: isUser ? 'user' : 'assistant',
+          content,
+          timestamp: Date.now(),
+        });
       }
     });
 
@@ -360,19 +351,15 @@ class PlatformMessageExtractor implements MessageExtractor {
   private extractYuanbaoFromDocument(): Message[] {
     const messages: Message[] = [];
 
-    // Fallback: search entire document
+    // Fallback: search entire document for Yuanbao bubble elements
     const userSelectors = [
-      '[class*="user-message"]',
-      '[class*="message-user"]',
-      '[class*="self-message"]',
-      '[data-role="user"]',
+      '[class*="bubble--human"]',
+      '[class*="chat__bubble--human"]',
     ];
 
     const assistantSelectors = [
-      '[class*="assistant-message"]',
-      '[class*="message-assistant"]',
-      '[class*="bot-message"]',
-      '[data-role="assistant"]',
+      '[class*="bubble--ai"]',
+      '[class*="chat__bubble--ai"]',
     ];
 
     // Collect all elements with their roles
