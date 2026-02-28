@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniContext</title>
-  <script type="module" crossorigin src="/assets/popup-tsTqpsJj.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/extractor-hQfV5usQ.js">
-  <link rel="stylesheet" crossorigin href="/assets/popup-DrpIYjis.css">
+  <script type="module" crossorigin src="/assets/popup-D8eqbx3J.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/extractor-X-uBzicu.js">
+  <link rel="stylesheet" crossorigin href="/assets/popup-ycCa6KVS.css">
 </head>
 <body>
   <div id="app">
@@ -14,6 +14,26 @@
       <h1>🧠 OmniContext</h1>
       <span id="current-page" class="current-page">检测中...</span>
     </header>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input" placeholder="搜索会话...">
+        <button id="search-clear" class="search-clear" style="display: none;">×</button>
+      </div>
+      <div class="filter-bar">
+        <select id="filter-platform" class="filter-select">
+          <option value="">全部平台</option>
+          <option value="doubao">豆包</option>
+          <option value="yuanbao">元宝</option>
+          <option value="claude">Claude</option>
+        </select>
+        <select id="filter-tags" class="filter-select" multiple>
+          <!-- Tags will be populated dynamically -->
+        </select>
+      </div>
+    </div>
 
     <main class="main">
       <div id="session-list" class="session-list">
