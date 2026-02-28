@@ -13,6 +13,26 @@
       <span id="current-page" class="current-page">检测中...</span>
     </header>
 
+    <!-- Search Bar -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" class="search-input" placeholder="搜索会话...">
+        <button id="search-clear" class="search-clear" style="display: none;">×</button>
+      </div>
+      <div class="filter-bar">
+        <select id="filter-platform" class="filter-select">
+          <option value="">全部平台</option>
+          <option value="doubao">豆包</option>
+          <option value="yuanbao">元宝</option>
+          <option value="claude">Claude</option>
+        </select>
+        <select id="filter-tags" class="filter-select" multiple>
+          <!-- Tags will be populated dynamically -->
+        </select>
+      </div>
+    </div>
+
     <main class="main">
       <div id="session-list" class="session-list">
         <div class="loading">加载中...</div>

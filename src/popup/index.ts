@@ -17,13 +17,32 @@ const currentPageEl = document.getElementById('current-page')!;
 const exportBtn = document.getElementById('export-btn')!;
 const refreshBtn = document.getElementById('refresh-btn')!;
 const toastEl = document.getElementById('toast')!;
+const searchInput = document.getElementById('search-input')! as HTMLInputElement;
+const searchClear = document.getElementById('search-clear')! as HTMLButtonElement;
+const filterPlatform = document.getElementById('filter-platform')! as HTMLSelectElement;
+const filterTags = document.getElementById('filter-tags')! as HTMLSelectElement;
 
 // State
 let currentPlatform: Platform | null = null;
 let allTags: Tag[] = [];
+let allSessions: Session[] = [];
+
+// Search state
+let searchKeyword = '';
+let selectedPlatform: Platform | '' = '';
+let selectedTagIds: string[] = [];
 
 // Track collapsed state of each platform (persisted in session)
 const collapsedPlatforms = new Set<string>();
+
+// Debounce helper
+function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
+  let timer: ReturnType<typeof setTimeout>;
+  return ((...args: any[]) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  }) as T;
+}
 
 // Initialize
 async function init() {
@@ -31,8 +50,8 @@ async function init() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {
-      currentPlatform = detectPlatform(tab.url);
-      updateCurrentPage();
+    currentPlatform = detectPlatform(tab.url);
+    updateCurrentPage();
     }
   } catch (e) {
     console.error('Failed to detect platform:', e);
@@ -44,6 +63,41 @@ async function init() {
   // Bind events
   exportBtn.addEventListener('click', handleExport);
   refreshBtn.addEventListener('click', loadSessions);
+
+  // Search events
+  searchInput.addEventListener('input', debounce(handleSearch, 300));
+  searchClear.addEventListener('click', clearSearch);
+  filterPlatform.addEventListener('change', handleFilterChange);
+}
+
+function handleSearch() {
+  searchKeyword = searchInput.value.trim();
+  searchClear.style.display = searchKeyword ? 'flex' : 'none';
+  renderSessions();
+}
+
+function clearSearch() {
+  searchInput.value = '';
+  searchKeyword = '';
+  searchClear.style.display = 'none';
+  renderSessions();
+}
+
+function handleFilterChange() {
+  selectedPlatform = filterPlatform.value as Platform | '';
+  renderSessions();
+}
+
+function highlightText(text: string, keyword: string): string {
+  if (!keyword) return escapeHtml(text);
+
+  const escaped = escapeHtml(text);
+  const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+  return escaped.replace(regex, '<span class="highlight">$1</span>');
+}
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function updateCurrentPage() {
@@ -61,9 +115,20 @@ async function loadSessions() {
   // Load all tags
   allTags = await tagStorage.getAllTags();
 
-  const sessions = await sessionStorage.getAllSessions();
+  // Update tag filter dropdown
+  filterTags.innerHTML = '<option value="">全部标签</option>' +
+    allTags.map(tag =>
+    `<option value="${tag.id}">${tag.name}</option>`
+  ).join('');
 
-  if (sessions.length === 0) {
+  const sessions = await sessionStorage.getAllSessions();
+  allSessions = sessions;
+
+  renderSessions();
+}
+
+async function renderSessions() {
+  if (allSessions.length === 0) {
     sessionListEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📝</div>
@@ -74,8 +139,53 @@ async function loadSessions() {
     return;
   }
 
-  // Group by platform
-  const grouped = sessions.reduce((acc, session) => {
+  // Filter sessions
+  let filtered = [...allSessions];
+
+  // Platform filter
+  if (selectedPlatform) {
+    filtered = filtered.filter(s => s.platform === selectedPlatform);
+  }
+
+  // Tag filter (multi-select) - session must have ALL selected tags
+  if (selectedTagIds.length > 0) {
+    const sessionWithTagPromises = filtered.map(async session => {
+    const sessionTagIds = await tagStorage.getSessionTags(session.id);
+    return { session, sessionTagIds };
+  });
+
+  const sessionsWithTags = await Promise.all(sessionWithTagPromises);
+  filtered = sessionsWithTags
+    .filter(item => selectedTagIds.every(tagId => item.sessionTagIds.includes(tagId)))
+    .map(item => item.session);
+  }
+
+  // Keyword search
+  if (searchKeyword) {
+    const keyword = searchKeyword.toLowerCase();
+    filtered = filtered.filter(session => {
+      const titleMatch = session.title.toLowerCase().includes(keyword);
+      const contentMatch = session.messages.some(m =>
+        m.content.toLowerCase().includes(keyword)
+      );
+      return titleMatch || contentMatch;
+    });
+  }
+
+  // Render results
+  if (filtered.length === 0 && (searchKeyword || selectedPlatform || selectedTagIds.length > 0)) {
+    sessionListEl.innerHTML = `
+      <div class="search-empty">
+        <div class="search-empty-icon">🔍</div>
+        <p>没有找到匹配的会话</p>
+        <p style="font-size: 12px; margin-top: 8px;">试试其他关键词或筛选条件</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Group by platform (preserving collapse state)
+  const grouped = filtered.reduce((acc, session) => {
     if (!acc[session.platform]) {
       acc[session.platform] = [];
     }
@@ -83,7 +193,7 @@ async function loadSessions() {
     return acc;
   }, {} as Record<Platform, Session[]>);
 
-  // Render (async - get tags for each session)
+  // Render
   const platformHtmls = await Promise.all(
     Object.entries(grouped).map(async ([platform, platformSessions]) => {
       const sessionHtmls = await Promise.all(
@@ -97,6 +207,38 @@ async function loadSessions() {
 
   // Bind events
   bindSessionEvents();
+}
+
+async function renderSessionItemWithTags(session: Session): Promise<string> {
+  const sessionTags = await tagStorage.getSessionTags(session.id);
+  const tagObjects = allTags.filter(t => sessionTags.includes(t.id));
+  return renderSessionItemWithHighlight(session, tagObjects);
+}
+
+function renderSessionItemWithHighlight(session: Session, tags: Tag[]): string {
+  const date = new Date(session.updatedAt).toLocaleDateString('zh-CN');
+  const tagsHtml = tags.map(tag =>
+    `<span class="tag" style="background: ${tag.color}">${escapeHtml(tag.name)}</span>`
+  ).join('');
+
+  // Highlight title if searching
+  const titleHtml = highlightText(session.title, searchKeyword);
+
+  return `
+    <div class="session-item" data-id="${session.id}">
+      <div class="session-info">
+        <div class="session-title">${titleHtml}</div>
+        <div class="session-tags">${tagsHtml}</div>
+        <div class="session-meta">${date} · ${session.messageCount}条消息</div>
+      </div>
+      <div class="session-actions">
+        <button class="btn-icon copy" title="复制上下文" data-action="copy">📋</button>
+        <button class="btn-icon tag-btn" title="管理标签" data-action="tags">🏷️</button>
+        <button class="btn-icon edit" title="编辑标题" data-action="edit">✏️</button>
+        <button class="btn-icon delete" title="删除" data-action="delete">🗑️</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderPlatformGroupWithHtml(platform: Platform, sessionHtmls: string[]): string {
@@ -119,99 +261,70 @@ function renderPlatformGroupWithHtml(platform: Platform, sessionHtmls: string[])
   `;
 }
 
-async function renderSessionItemWithTags(session: Session): Promise<string> {
-  const sessionTags = await tagStorage.getSessionTags(session.id);
-  const tagObjects = allTags.filter(t => sessionTags.includes(t.id));
-  return renderSessionItem(session, tagObjects);
-}
-
-function renderSessionItem(session: Session, tags: Tag[]): string {
-  const date = new Date(session.updatedAt).toLocaleDateString('zh-CN');
-  const tagsHtml = tags.map(tag =>
-    `<span class="tag" style="background: ${tag.color}">${escapeHtml(tag.name)}</span>`
-  ).join('');
-
-  return `
-    <div class="session-item" data-id="${session.id}">
-      <div class="session-info">
-        <div class="session-title">${escapeHtml(session.title)}</div>
-        <div class="session-tags">${tagsHtml}</div>
-        <div class="session-meta">${date} · ${session.messageCount}条消息</div>
-      </div>
-      <div class="session-actions">
-        <button class="btn-icon copy" title="复制上下文" data-action="copy">📋</button>
-        <button class="btn-icon tag-btn" title="管理标签" data-action="tags">🏷️</button>
-        <button class="btn-icon edit" title="编辑标题" data-action="edit">✏️</button>
-        <button class="btn-icon delete" title="删除" data-action="delete">🗑️</button>
-      </div>
-    </div>
-  `;
-}
-
 function bindSessionEvents() {
   // Copy buttons
   document.querySelectorAll('[data-action="copy"]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const item = (e.target as HTMLElement).closest('.session-item');
-      const id = item?.getAttribute('data-id');
-      if (id) {
-        await handleCopy(id);
-      }
-    });
+    const item = (e.target as HTMLElement).closest('.session-item');
+    const id = item?.getAttribute('data-id');
+    if (id) {
+      await handleCopy(id);
+    }
+  });
   });
 
   // Edit buttons
   document.querySelectorAll('[data-action="edit"]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const item = (e.target as HTMLElement).closest('.session-item');
-      const id = item?.getAttribute('data-id');
-      if (id) {
-        await handleEdit(id);
-      }
-    });
+    const item = (e.target as HTMLElement).closest('.session-item');
+    const id = item?.getAttribute('data-id');
+    if (id) {
+      await handleEdit(id);
+    }
+  });
   });
 
   // Tag buttons
   document.querySelectorAll('[data-action="tags"]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const item = (e.target as HTMLElement).closest('.session-item');
-      const id = item?.getAttribute('data-id');
-      if (id) {
-        await handleManageTags(id);
-      }
-    });
+    const item = (e.target as HTMLElement).closest('.session-item');
+    const id = item?.getAttribute('data-id');
+    if (id) {
+      await handleManageTags(id);
+    }
+  });
   });
 
   // Delete buttons
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const item = (e.target as HTMLElement).closest('.session-item');
-      const id = item?.getAttribute('data-id');
-      if (id && confirm('确定要删除这个会话吗？')) {
-        await handleDelete(id);
-      }
-    });
+    const item = (e.target as HTMLElement).closest('.session-item');
+    const id = item?.getAttribute('data-id');
+    if (id && confirm('确定要删除这个会话吗？')) {
+      await handleDelete(id);
+    }
+  });
   });
 
   // Platform header toggle
   document.querySelectorAll('.platform-header').forEach(header => {
     header.addEventListener('click', () => {
-      const platform = header.getAttribute('data-platform') as Platform;
-      header.classList.toggle('collapsed');
-      const isNowCollapsed = header.classList.contains('collapsed');
+    const platform = header.getAttribute('data-platform') as Platform;
+    header.classList.toggle('collapsed');
+    const isNowCollapsed = header.classList.contains('collapsed');
 
-      // Track collapsed state
-      if (isNowCollapsed) {
-        collapsedPlatforms.add(platform);
-      } else {
-        collapsedPlatforms.delete(platform);
-      }
+    // Track collapsed state
+    if (isNowCollapsed) {
+    collapsedPlatforms.add(platform);
+  } else {
+    collapsedPlatforms.delete(platform);
+  }
 
-      const sessions = header.nextElementSibling as HTMLElement;
-      if (sessions) {
-        sessions.style.display = sessions.style.display === 'none' ? 'block' : 'none';
-      }
-    });
+    const sessions = header.nextElementSibling as HTMLElement;
+    if (sessions) {
+    sessions.style.display = sessions.style.display === 'none' ? 'block' : 'none';
+    }
+  });
   });
 }
 
@@ -286,11 +399,11 @@ async function handleManageTags(sessionId: string) {
     const color = '#1890ff'; // Default blue
     const newTag = await tagStorage.createTag(choice.trim(), color);
     if (newTag) {
-      await tagStorage.addTagToSession(sessionId, newTag.id);
-      showToast(`已创建并添加标签: ${newTag.name}`);
-    } else {
-      showToast('标签已存在或创建失败');
-    }
+    await tagStorage.addTagToSession(sessionId, newTag.id);
+    showToast(`已创建并添加标签: ${newTag.name}`);
+  } else {
+    showToast('标签已存在或创建失败');
+  }
   }
 
   await loadSessions();
