@@ -41,6 +41,16 @@ const importTagCount = document.getElementById('import-tag-count')!;
 const importCancel = document.getElementById('import-cancel')!;
 const importConfirm = document.getElementById('import-confirm')!;
 
+// Batch capture elements
+const batchCaptureSection = document.getElementById('batch-capture-section')!;
+const batchCaptureBtn = document.getElementById('batch-capture-btn')! as HTMLButtonElement;
+const batchProgress = document.getElementById('batch-progress')!;
+const batchProgressCount = document.getElementById('batch-progress-count')!;
+const batchProgressFill = document.getElementById('batch-progress-fill')!;
+const batchProgressTitle = document.getElementById('batch-progress-title')!;
+const batchCapturedCount = document.getElementById('batch-captured-count')!;
+const batchCancelBtn = document.getElementById('batch-cancel-btn')! as HTMLButtonElement;
+
 // State
 let currentPlatform: Platform | null = null;
 let allTags: Tag[] = [];
@@ -70,8 +80,16 @@ async function init() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {
-    currentPlatform = detectPlatform(tab.url);
-    updateCurrentPage();
+      currentPlatform = detectPlatform(tab.url);
+      updateCurrentPage();
+
+      // Show batch capture button if on supported platform
+      if (currentPlatform) {
+        batchCaptureSection.style.display = 'block';
+        batchCaptureBtn.innerHTML = `📦 批量捕获 ${formatPlatformName(currentPlatform)} 所有会话`;
+      } else {
+        batchCaptureSection.style.display = 'none';
+      }
     }
   } catch (e) {
     console.error('Failed to detect platform:', e);
@@ -91,6 +109,17 @@ async function init() {
   importConfirm.addEventListener('click', handleImportConfirm);
   importDialog.addEventListener('click', (e) => {
     if (e.target === importDialog) hideImportDialog();
+  });
+
+  // Batch capture events
+  batchCaptureBtn.addEventListener('click', handleBatchCaptureStart);
+  batchCancelBtn.addEventListener('click', handleBatchCaptureCancel);
+
+  // Listen for batch capture progress from content script
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'BATCH_CAPTURE_PROGRESS') {
+      updateBatchCaptureProgress(message.progress);
+    }
   });
 
   // Search events
@@ -577,6 +606,89 @@ async function handleImportConfirm() {
     showToast('导入失败：请重试');
   }
 }
+
+// ========== Batch Capture ==========
+
+async function handleBatchCaptureStart() {
+  if (!currentPlatform) {
+    showToast('请在支持的AI平台页面使用此功能');
+    return;
+  }
+
+  // Get current tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    showToast('无法获取当前标签页');
+    return;
+  }
+
+  // Send message to content script
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, { type: 'BATCH_CAPTURE_START' });
+
+    if (response.success) {
+      // Show progress UI
+      batchCaptureSection.style.display = 'none';
+      batchProgress.style.display = 'block';
+      batchProgressCount.textContent = '0/?';
+      batchProgressFill.style.width = '0%';
+      batchProgressTitle.textContent = '准备中...';
+      batchCapturedCount.textContent = '0';
+    } else {
+      showToast(response.error || '启动失败');
+    }
+  } catch (err) {
+    showToast('请刷新页面后重试');
+  }
+}
+
+async function handleBatchCaptureCancel() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { type: 'BATCH_CAPTURE_CANCEL' });
+    hideBatchCaptureProgress();
+    showToast('批量捕获已取消');
+  } catch (err) {
+    hideBatchCaptureProgress();
+  }
+}
+
+function updateBatchCaptureProgress(progress: {
+  total: number;
+  current: number;
+  currentTitle: string;
+  captured: number;
+  status: string;
+  error?: string;
+}) {
+  batchProgressCount.textContent = `${progress.current}/${progress.total}`;
+  batchProgressFill.style.width = progress.total > 0
+    ? `${(progress.current / progress.total) * 100}%`
+    : '0%';
+  batchProgressTitle.textContent = progress.currentTitle || '处理中...';
+  batchCapturedCount.textContent = String(progress.captured);
+
+  if (progress.status === 'completed') {
+    hideBatchCaptureProgress();
+    loadSessions();
+    showToast(`批量捕获完成：${progress.current}个会话，${progress.captured}条消息`);
+  } else if (progress.status === 'cancelled') {
+    hideBatchCaptureProgress();
+    showToast(`批量捕获已取消：已捕获${progress.captured}条消息`);
+  } else if (progress.status === 'error') {
+    hideBatchCaptureProgress();
+    showToast(`批量捕获失败：${progress.error || '未知错误'}`);
+  }
+}
+
+function hideBatchCaptureProgress() {
+  batchProgress.style.display = 'none';
+  batchCaptureSection.style.display = currentPlatform ? 'block' : 'none';
+}
+
+// ========== Utility ==========
 
 function showToast(message: string) {
   toastEl.textContent = message;

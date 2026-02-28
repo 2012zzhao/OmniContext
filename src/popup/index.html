@@ -13,6 +13,29 @@
       <span id="current-page" class="current-page">检测中...</span>
     </header>
 
+    <!-- Batch Capture Section -->
+    <div id="batch-capture-section" class="batch-capture-section" style="display: none;">
+      <button id="batch-capture-btn" class="btn btn-batch">📦 批量捕获当前平台所有会话</button>
+    </div>
+
+    <!-- Batch Capture Progress -->
+    <div id="batch-progress" class="batch-progress" style="display: none;">
+      <div class="batch-progress-header">
+        <span>批量捕获进行中...</span>
+        <span id="batch-progress-count">0/0</span>
+      </div>
+      <div class="batch-progress-bar">
+        <div id="batch-progress-fill" class="batch-progress-fill"></div>
+      </div>
+      <div id="batch-progress-title" class="batch-progress-title">准备中...</div>
+      <div class="batch-progress-info">
+        <span>已捕获：<span id="batch-captured-count">0</span> 条消息</span>
+      </div>
+      <div class="batch-progress-actions">
+        <button id="batch-cancel-btn" class="btn btn-sm btn-danger">取消</button>
+      </div>
+    </div>
+
     <!-- Search Bar -->
     <div class="search-container">
       <div class="search-input-wrapper">

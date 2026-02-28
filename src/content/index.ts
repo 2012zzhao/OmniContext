@@ -1,5 +1,6 @@
 import { sessionStorage } from '../storage/session-storage';
 import { detectPlatform, extractSessionId, createMessageExtractor } from '../utils/extractor';
+import { startBatchCapture, pauseBatchCapture, resumeBatchCapture, cancelBatchCapture, isBatchCaptureRunning } from './batch-capture';
 import type { Platform, Session, Message } from '../types';
 
 const DEBUG = false;  // Disable verbose logging
@@ -174,3 +175,49 @@ setInterval(() => {
     init();
   }
 }, 1000);
+
+// Listen for batch capture commands from popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'BATCH_CAPTURE_START') {
+    if (!currentPlatform) {
+      sendResponse({ success: false, error: '未检测到支持的平台' });
+      return true;
+    }
+
+    startBatchCapture(currentPlatform, (progress) => {
+      // Send progress updates to popup
+      chrome.runtime.sendMessage({
+        type: 'BATCH_CAPTURE_PROGRESS',
+        progress,
+      });
+    });
+
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'BATCH_CAPTURE_PAUSE') {
+    pauseBatchCapture();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'BATCH_CAPTURE_RESUME') {
+    resumeBatchCapture();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'BATCH_CAPTURE_CANCEL') {
+    cancelBatchCapture();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (message.type === 'BATCH_CAPTURE_STATUS') {
+    sendResponse({ running: isBatchCaptureRunning() });
+    return true;
+  }
+
+  return false;
+});

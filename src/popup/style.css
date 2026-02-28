@@ -449,3 +449,97 @@ body {
 .dialog-footer .btn {
   flex: 1;
 }
+
+/* Batch Capture */
+.batch-capture-section {
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #d6e4ff;
+}
+
+.btn-batch {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-batch:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-batch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.batch-progress {
+  padding: 12px;
+  background: #fff9e6;
+  border-bottom: 1px solid #ffe58f;
+}
+
+.batch-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.batch-progress-bar {
+  height: 6px;
+  background: #e8e8e8;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.batch-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #52c41a, #73d13d);
+  border-radius: 3px;
+  transition: width 0.3s;
+  width: 0%;
+}
+
+.batch-progress-title {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+}
+
+.batch-progress-info {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.batch-progress-actions {
+  text-align: right;
+}
+
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  background: #ff4d4f;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #ff7875;
+}
