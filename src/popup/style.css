@@ -108,8 +108,13 @@ body {
   margin-top: 8px;
 }
 
-.filter-select {
+.filter-wrapper {
   flex: 1;
+  position: relative;
+}
+
+.filter-select {
+  width: 100%;
   padding: 6px 8px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -134,6 +139,8 @@ body {
   height: auto;
   min-height: 80px;
   position: absolute;
+  left: 0;
+  right: 0;
   z-index: 100;
   background: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);

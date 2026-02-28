@@ -74,19 +74,66 @@ export function detectPlatform(url: string): Platform | null {
   return null;
 }
 
-export function extractSessionId(url: string, _platform: Platform): string {
+export function extractSessionId(url: string, platform: Platform): string {
   const urlObj = new URL(url);
   const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
 
-  // Try to find UUID or ID in path
+  // Platform-specific extraction
+  if (platform === 'yuanbao') {
+    // Yuanbao may use query param or hash for session ID
+    // Check query params first
+    const chatId = urlObj.searchParams.get('chatId') || urlObj.searchParams.get('id');
+    if (chatId) return chatId;
+
+    // Check hash
+    if (urlObj.hash && urlObj.hash.length > 1) {
+      const hashPart = urlObj.hash.slice(1).split('/')[0];
+      if (hashPart && hashPart.length >= 4) return hashPart;
+    }
+
+    // Check path for UUID pattern
+    for (const part of pathParts) {
+      // UUID pattern or long ID
+      if (part && part !== 'chat' && part.length >= 8) {
+        return part;
+      }
+    }
+  }
+
+  // Default: try to find UUID or ID in path
   for (const part of pathParts) {
     if (part && part !== 'chat' && part !== 'c' && part.length >= 4) {
       return part;
     }
   }
 
-  // Fallback: use timestamp for new chats
-  return `new-${Date.now()}`;
+  // Check query params as fallback
+  const queryId = urlObj.searchParams.get('chatId') ||
+                  urlObj.searchParams.get('id') ||
+                  urlObj.searchParams.get('session');
+  if (queryId) return queryId;
+
+  // Check hash as fallback
+  if (urlObj.hash && urlObj.hash.length > 1) {
+    const hashPart = urlObj.hash.slice(1).split('/')[0];
+    if (hashPart && hashPart.length >= 4 && hashPart !== 'chat') return hashPart;
+  }
+
+  // Fallback: use path hash as session ID
+  // This ensures different URLs get different IDs even if no explicit ID found
+  const pathHash = pathParts.join('/') || 'root';
+  return `${platform}-${simpleHash(pathHash)}`;
+}
+
+// Simple string hash function
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
 }
 
 export function formatPlatformName(platform: Platform): string {

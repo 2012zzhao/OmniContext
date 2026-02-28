@@ -35,7 +35,7 @@ function init() {
     }
 
     currentSessionId = extractSessionId(url, currentPlatform);
-    log('Detected:', currentPlatform, 'Session:', currentSessionId);
+    log('Detected:', currentPlatform, 'Session:', currentSessionId, 'URL:', url);
 
     // Debug: show what elements we can find
     try {

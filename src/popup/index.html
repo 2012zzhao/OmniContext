@@ -21,15 +21,19 @@
         <button id="search-clear" class="search-clear" style="display: none;">×</button>
       </div>
       <div class="filter-bar">
-        <select id="filter-platform" class="filter-select">
-          <option value="">全部平台</option>
-          <option value="doubao">豆包</option>
-          <option value="yuanbao">元宝</option>
-          <option value="claude">Claude</option>
-        </select>
-        <select id="filter-tags" class="filter-select" multiple>
-          <!-- Tags will be populated dynamically -->
-        </select>
+        <div class="filter-wrapper">
+          <select id="filter-platform" class="filter-select">
+            <option value="">全部平台</option>
+            <option value="doubao">豆包</option>
+            <option value="yuanbao">元宝</option>
+            <option value="claude">Claude</option>
+          </select>
+        </div>
+        <div class="filter-wrapper">
+          <select id="filter-tags" class="filter-select" multiple>
+            <!-- Tags will be populated dynamically -->
+          </select>
+        </div>
       </div>
     </div>
 
