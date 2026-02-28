@@ -130,22 +130,6 @@ body {
   border-color: #6366f1;
 }
 
-.filter-select[multiple] {
-  height: 28px;
-  overflow: hidden;
-}
-
-.filter-select[multiple]:focus {
-  height: auto;
-  min-height: 80px;
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
 /* Search Highlight */
 .highlight {
   background: #fef08a;
@@ -386,4 +370,82 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #999;
+}
+
+/* Dialog */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.dialog {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 320px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.dialog-header {
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.dialog-body {
+  padding: 16px;
+}
+
+.dialog-info {
+  background: #f5f5f5;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.dialog-options {
+  font-size: 13px;
+}
+
+.dialog-label {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  margin-top: 2px;
+  margin-right: 8px;
+}
+
+.radio-option .danger {
+  color: #ff4d4f;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.dialog-footer .btn {
+  flex: 1;
 }

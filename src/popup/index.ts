@@ -4,6 +4,15 @@ import { formatSessionForInjection } from '../utils/formatter';
 import { formatPlatformName, detectPlatform } from '../utils/extractor';
 import type { Platform, Session, Tag } from '../types';
 
+// Export data structure
+interface ExportData {
+  version: string;
+  exportedAt: string;
+  sessions: Session[];
+  tags: Tag[];
+  sessionTags: Record<string, string[]>;
+}
+
 // Platform icons
 const PLATFORM_ICONS: Record<Platform, string> = {
   doubao: '🔴',
@@ -15,6 +24,7 @@ const PLATFORM_ICONS: Record<Platform, string> = {
 const sessionListEl = document.getElementById('session-list')!;
 const currentPageEl = document.getElementById('current-page')!;
 const exportBtn = document.getElementById('export-btn')!;
+const importBtn = document.getElementById('import-btn')!;
 const refreshBtn = document.getElementById('refresh-btn')!;
 const toastEl = document.getElementById('toast')!;
 const searchInput = document.getElementById('search-input')! as HTMLInputElement;
@@ -22,10 +32,20 @@ const searchClear = document.getElementById('search-clear')! as HTMLButtonElemen
 const filterPlatform = document.getElementById('filter-platform')! as HTMLSelectElement;
 const filterTags = document.getElementById('filter-tags')! as HTMLSelectElement;
 
+// Import dialog elements
+const importDialog = document.getElementById('import-dialog')!;
+const importFileInput = document.getElementById('import-file-input')! as HTMLInputElement;
+const importFilename = document.getElementById('import-filename')!;
+const importSessionCount = document.getElementById('import-session-count')!;
+const importTagCount = document.getElementById('import-tag-count')!;
+const importCancel = document.getElementById('import-cancel')!;
+const importConfirm = document.getElementById('import-confirm')!;
+
 // State
 let currentPlatform: Platform | null = null;
 let allTags: Tag[] = [];
 let allSessions: Session[] = [];
+let pendingImportData: ExportData | null = null;
 
 // Search state
 let searchKeyword = '';
@@ -62,7 +82,16 @@ async function init() {
 
   // Bind events
   exportBtn.addEventListener('click', handleExport);
+  importBtn.addEventListener('click', () => importFileInput.click());
   refreshBtn.addEventListener('click', loadSessions);
+
+  // Import events
+  importFileInput.addEventListener('change', handleImportFileSelect);
+  importCancel.addEventListener('click', hideImportDialog);
+  importConfirm.addEventListener('click', handleImportConfirm);
+  importDialog.addEventListener('click', (e) => {
+    if (e.target === importDialog) hideImportDialog();
+  });
 
   // Search events
   searchInput.addEventListener('input', debounce(handleSearch, 300));
@@ -90,8 +119,9 @@ function handleFilterChange() {
 }
 
 function handleTagFilterChange() {
-  // Get all selected options from multi-select
-  selectedTagIds = Array.from(filterTags.selectedOptions).map(opt => opt.value);
+  // Single select - get the selected value
+  const selectedValue = filterTags.value;
+  selectedTagIds = selectedValue ? [selectedValue] : [];
   renderSessions();
 }
 
@@ -423,8 +453,20 @@ async function handleDelete(sessionId: string) {
 }
 
 async function handleExport() {
-  const data = await sessionStorage.exportAllSessions();
-  const blob = new Blob([data], { type: 'application/json' });
+  // Collect all data
+  const sessions = await sessionStorage.getAllSessions();
+  const tags = await tagStorage.getAllTags();
+  const sessionTags = await tagStorage.getAllSessionTags();
+
+  const exportData: ExportData = {
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    sessions,
+    tags,
+    sessionTags,
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
@@ -436,6 +478,104 @@ async function handleExport() {
   URL.revokeObjectURL(url);
 
   showToast('备份文件已下载');
+}
+
+function handleImportFileSelect(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const content = event.target?.result as string;
+      const data = JSON.parse(content) as ExportData;
+
+      // Validate structure
+      if (!data.version || !Array.isArray(data.sessions) || !Array.isArray(data.tags)) {
+        showToast('导入失败：文件格式无效');
+        return;
+      }
+
+      // Store pending data and show dialog
+      pendingImportData = data;
+      importFilename.textContent = file.name;
+      importSessionCount.textContent = String(data.sessions.length);
+      importTagCount.textContent = String(data.tags.length);
+      importDialog.style.display = 'flex';
+
+    } catch (err) {
+      showToast('导入失败：文件解析错误');
+    }
+  };
+
+  reader.readAsText(file);
+  // Reset input so same file can be selected again
+  importFileInput.value = '';
+}
+
+function hideImportDialog() {
+  importDialog.style.display = 'none';
+  pendingImportData = null;
+}
+
+async function handleImportConfirm() {
+  if (!pendingImportData) return;
+
+  // Get selected mode
+  const modeRadio = document.querySelector('input[name="import-mode"]:checked') as HTMLInputElement;
+  const mode = modeRadio?.value as 'merge-keep' | 'merge-overwrite' | 'replace';
+
+  try {
+    const data = pendingImportData;
+    hideImportDialog();
+
+    // Clear data if replace mode
+    if (mode === 'replace') {
+      await sessionStorage.clearAllSessions();
+      const existingTags = await tagStorage.getAllTags();
+      for (const tag of existingTags) {
+        await tagStorage.deleteTag(tag.id);
+      }
+    }
+
+    // Import tags
+    for (const tag of data.tags) {
+      if (mode === 'merge-keep') {
+        const existing = await tagStorage.getTag(tag.id);
+        if (!existing) {
+          await tagStorage.createTagWithId(tag);
+        }
+      } else {
+        await tagStorage.createTagWithId(tag);
+      }
+    }
+
+    // Import sessions
+    await sessionStorage.importSessions(data.sessions, mode);
+
+    // Import session-tag associations
+    if (mode === 'replace') {
+      await tagStorage.setAllSessionTags(data.sessionTags);
+    } else {
+      // Merge session tags
+      const existingSessionTags = await tagStorage.getAllSessionTags();
+      for (const [sessionId, tagIds] of Object.entries(data.sessionTags)) {
+        if (mode === 'merge-keep' && existingSessionTags[sessionId]) {
+          continue; // Keep existing
+        }
+        for (const tagId of tagIds) {
+          await tagStorage.addTagToSession(sessionId, tagId);
+        }
+      }
+    }
+
+    await loadSessions();
+    showToast(`导入成功：${data.sessions.length}个会话，${data.tags.length}个标签`);
+
+  } catch (err) {
+    console.error('Import failed:', err);
+    showToast('导入失败：请重试');
+  }
 }
 
 function showToast(message: string) {

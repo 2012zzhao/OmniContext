@@ -120,9 +120,31 @@ export class TagStorage {
   /**
    * Get all session-tag mappings
    */
-  private async getAllSessionTags(): Promise<Record<string, string[]>> {
+  async getAllSessionTags(): Promise<Record<string, string[]>> {
     const result = await chrome.storage.local.get(SESSION_TAGS_KEY);
     return (result[SESSION_TAGS_KEY] as Record<string, string[]>) || {};
+  }
+
+  /**
+   * Create tag with specific ID (for import)
+   */
+  async createTagWithId(tag: Tag): Promise<void> {
+    const tags = await this.getAllTags();
+
+    // Check for duplicate ID
+    if (tags.some(t => t.id === tag.id)) {
+      return;
+    }
+
+    tags.push(tag);
+    await chrome.storage.local.set({ [TAGS_KEY]: tags });
+  }
+
+  /**
+   * Set all session-tag mappings (for import)
+   */
+  async setAllSessionTags(sessionTags: Record<string, string[]>): Promise<void> {
+    await chrome.storage.local.set({ [SESSION_TAGS_KEY]: sessionTags });
   }
 
   /**

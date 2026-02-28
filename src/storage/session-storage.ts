@@ -95,6 +95,42 @@ export class SessionStorage {
     const sessions = await this.getAllSessions();
     return JSON.stringify(sessions, null, 2);
   }
+
+  /**
+   * Clear all sessions
+   */
+  async clearAllSessions(): Promise<void> {
+    await chrome.storage.local.set({ [STORAGE_KEY]: [] });
+  }
+
+  /**
+   * Import sessions (add or replace based on mode)
+   */
+  async importSessions(sessions: Session[], mode: 'merge-keep' | 'merge-overwrite' | 'replace'): Promise<number> {
+    if (mode === 'replace') {
+      await this.clearAllSessions();
+      await chrome.storage.local.set({ [STORAGE_KEY]: sessions });
+      return sessions.length;
+    }
+
+    const existingSessions = await this.getAllSessions();
+    const existingMap = new Map(existingSessions.map(s => [s.id, s]));
+
+    for (const session of sessions) {
+      if (mode === 'merge-keep') {
+        // Only add if not exists
+        if (!existingMap.has(session.id)) {
+          existingMap.set(session.id, session);
+        }
+      } else {
+        // merge-overwrite: add or replace
+        existingMap.set(session.id, session);
+      }
+    }
+
+    await chrome.storage.local.set({ [STORAGE_KEY]: Array.from(existingMap.values()) });
+    return sessions.length;
+  }
 }
 
 // Singleton instance

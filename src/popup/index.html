@@ -30,7 +30,8 @@
           </select>
         </div>
         <div class="filter-wrapper">
-          <select id="filter-tags" class="filter-select" multiple>
+          <select id="filter-tags" class="filter-select">
+            <option value="">全部标签</option>
             <!-- Tags will be populated dynamically -->
           </select>
         </div>
@@ -45,12 +46,49 @@
 
     <footer class="footer">
       <button id="export-btn" class="btn btn-secondary">📤 导出</button>
+      <button id="import-btn" class="btn btn-secondary">📥 导入</button>
       <button id="refresh-btn" class="btn btn-primary">🔄 刷新</button>
     </footer>
   </div>
 
   <!-- Toast notification -->
   <div id="toast" class="toast"></div>
+
+  <!-- Import Dialog -->
+  <div id="import-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog">
+      <div class="dialog-header">📥 导入确认</div>
+      <div class="dialog-body">
+        <div class="dialog-info">
+          <div>文件：<span id="import-filename">-</span></div>
+          <div>会话数：<span id="import-session-count">0</span></div>
+          <div>标签数：<span id="import-tag-count">0</span></div>
+        </div>
+        <div class="dialog-options">
+          <div class="dialog-label">导入方式：</div>
+          <label class="radio-option">
+            <input type="radio" name="import-mode" value="merge-keep" checked>
+            <span>合并（保留现有）- 推荐</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="import-mode" value="merge-overwrite">
+            <span>合并（覆盖冲突）</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="import-mode" value="replace">
+            <span class="danger">完全覆盖（清空现有数据）</span>
+          </label>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="import-cancel" class="btn btn-secondary">取消</button>
+        <button id="import-confirm" class="btn btn-primary">确认导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="import-file-input" accept=".json" style="display: none;">
 
   <script type="module" src="./index.ts"></script>
 </body>
