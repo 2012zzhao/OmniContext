@@ -1,5 +1,5 @@
 import { sessionStorage } from '../storage/session-storage';
-import { detectPlatform, extractSessionId, createMessageExtractor, debugPlatformElements } from '../utils/extractor';
+import { detectPlatform, extractSessionId, createMessageExtractor } from '../utils/extractor';
 import type { Platform, Session, Message } from '../types';
 
 const DEBUG = true;
@@ -35,14 +35,7 @@ function init() {
     }
 
     currentSessionId = extractSessionId(url, currentPlatform);
-    log('Detected:', currentPlatform, 'Session:', currentSessionId, 'URL:', url);
-
-    // Debug: show what elements we can find
-    try {
-      debugPlatformElements(currentPlatform);
-    } catch (e) {
-      log('Debug failed:', e);
-    }
+    log('Detected:', currentPlatform, 'Session:', currentSessionId);
 
     startCapturing();
   } catch (err) {
@@ -53,11 +46,12 @@ function init() {
 function startCapturing() {
   log('Starting capture...');
 
-  // Delay initial capture to ensure DOM is ready
+  // Initial capture with short delay
   setTimeout(() => {
     tryCapture();
-  }, 2000);
+  }, 500);
 
+  // Capture every 1 second for faster response
   captureInterval = window.setInterval(() => {
     if (!isExtensionContextValid()) {
       if (isContextValid) {
@@ -71,7 +65,7 @@ function startCapturing() {
       return;
     }
     tryCapture();
-  }, 3000);
+  }, 1000);
 }
 
 function tryCapture() {
@@ -81,11 +75,9 @@ function tryCapture() {
     const extractor = createMessageExtractor(currentPlatform);
     const messages = extractor.extractMessages();
 
-    log('Found messages:', messages.length);
-
     if (messages.length > 0) {
       if (JSON.stringify(messages) !== JSON.stringify(lastMessages)) {
-        log('New messages detected, saving...');
+        log('New messages detected:', messages.length);
         lastMessages = messages;
         saveSession();
       }
@@ -141,15 +133,6 @@ async function saveSession() {
     }
   }
 }
-
-// Expose debug function to window for manual debugging
-(window as any).debugAIMemoryBridge = () => {
-  if (currentPlatform) {
-    debugPlatformElements(currentPlatform);
-  } else {
-    console.log('No platform detected');
-  }
-};
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
