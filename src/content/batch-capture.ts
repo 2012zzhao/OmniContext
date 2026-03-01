@@ -33,7 +33,17 @@ export class BatchCapture {
     this.totalCaptured = 0;
 
     try {
-      // 1. 获取会话列表
+      // 1. 先滚动侧边栏加载所有会话
+      this.reportProgress({
+        total: 0,
+        current: 0,
+        currentTitle: '正在加载会话列表...',
+        captured: 0,
+        status: 'running',
+      });
+      await this.scrollToLoadAllSessions();
+
+      // 2. 获取会话列表
       const sessionElements = await this.getSessionListElements();
 
       if (sessionElements.length === 0) {
@@ -49,8 +59,9 @@ export class BatchCapture {
       }
 
       const total = sessionElements.length;
+      console.log(`[OmniContext] Total sessions found: ${total}`);
 
-      // 2. 逐个处理会话
+      // 3. 逐个处理会话
       for (let i = 0; i < sessionElements.length; i++) {
         // 检查暂停/取消
         while (this.isPaused && !this.isCancelled) {
@@ -231,6 +242,52 @@ export class BatchCapture {
   }
 
   // ========== 豆包平台特定实现 ==========
+
+  private async scrollToLoadAllSessions(): Promise<void> {
+    // 查找侧边栏滚动容器
+    const sidebarSelectors = [
+      '#flow_chat_sidebar',
+      '[data-testid="flow_chat_sidebar"]',
+      '[class*="sidebar"]',
+    ];
+
+    let sidebar: Element | null = null;
+    for (const selector of sidebarSelectors) {
+      sidebar = document.querySelector(selector);
+      if (sidebar) {
+        console.log(`[OmniContext] Found sidebar: ${selector}`);
+        break;
+      }
+    }
+
+    if (!sidebar) {
+      console.warn('[OmniContext] Sidebar not found for scrolling');
+      return;
+    }
+
+    // 滚动到底部加载所有会话
+    let lastCount = 0;
+    let noChangeCount = 0;
+
+    while (noChangeCount < 3) {
+      // 滚动到底部
+      (sidebar as HTMLElement).scrollTop = sidebar.scrollHeight;
+      await this.sleep(800);
+
+      // 检查会话数量是否增加
+      const currentCount = sidebar.querySelectorAll('[class*="chat-item"]').length;
+      console.log(`[OmniContext] Sessions loaded: ${currentCount}`);
+
+      if (currentCount === lastCount) {
+        noChangeCount++;
+      } else {
+        lastCount = currentCount;
+        noChangeCount = 0;
+      }
+    }
+
+    console.log(`[OmniContext] Finished loading sessions, total: ${lastCount}`);
+  }
 
   private getDoubaoSessionListElements(): Element[] {
     // 豆包的实际选择器
