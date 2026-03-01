@@ -87,6 +87,15 @@ export class BatchCapture {
         const element = sessionElements[i];
         const title = this.getSessionTitle(element);
 
+        // 预先获取会话ID（从元素属性）
+        const preSessionId = this.getSessionIdFromElement(element);
+
+        // 去重检查：如果已经处理过，跳过
+        if (preSessionId && this.processedSessions.has(preSessionId)) {
+          console.log(`[OmniContext] Skipping duplicate session: ${title} (${preSessionId})`);
+          continue;
+        }
+
         this.reportProgress({
           total,
           current: i + 1,
@@ -347,6 +356,49 @@ export class BatchCapture {
       return this.getDoubaoSessionTitle(element);
     }
     return '未知会话';
+  }
+
+  protected getSessionIdFromElement(element: Element): string | null {
+    if (this.platform === 'doubao') {
+      return this.getDoubaoSessionIdFromElement(element);
+    }
+    return null;
+  }
+
+  private getDoubaoSessionIdFromElement(element: Element): string | null {
+    // 豆包会话元素可能有 data 属性或 href
+    // 尝试多种方式获取 ID
+
+    // 方式1: data-session-id 或类似属性
+    const dataId = element.getAttribute('data-session-id') ||
+                   element.getAttribute('data-id') ||
+                   element.getAttribute('data-chat-id');
+    if (dataId) return dataId;
+
+    // 方式2: 从子元素的 href 提取
+    const linkEl = element.querySelector('a[href*="/chat/"]');
+    if (linkEl) {
+      const href = linkEl.getAttribute('href');
+      if (href) {
+        const match = href.match(/\/chat\/([^/?]+)/);
+        if (match) return match[1];
+      }
+    }
+
+    // 方式3: 使用标题+内容的 hash 作为唯一标识
+    const title = this.getDoubaoSessionTitle(element);
+    const preview = element.textContent?.trim().slice(0, 100) || '';
+    return `doubao-${this.simpleHash(title + preview)}`;
+  }
+
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
   }
 
   protected async clickSession(element: Element): Promise<void> {
