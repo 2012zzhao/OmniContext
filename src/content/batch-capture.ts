@@ -233,12 +233,11 @@ export class BatchCapture {
   // ========== 豆包平台特定实现 ==========
 
   private getDoubaoSessionListElements(): Element[] {
-    // 尝试多种选择器
+    // 豆包的实际选择器
     const selectors = [
-      '[class*="session-list"] [class*="session-item"]',
-      '[class*="chat-list"] [class*="chat-item"]',
-      '[class*="conversation-list"] [class*="conversation-item"]',
-      '[class*="history"] [class*="item"]',
+      '#flow_chat_sidebar [class*="chat-item"]',
+      '[data-testid="flow_chat_sidebar"] [class*="chat-item"]',
+      '[class*="chat-item"]',
     ];
 
     for (const selector of selectors) {
@@ -254,26 +253,29 @@ export class BatchCapture {
   }
 
   private getDoubaoSessionTitle(element: Element): string {
-    // 尝试多种标题选择器
+    // 豆包会话标题 - 尝试多种选择器
     const titleEl = element.querySelector('[class*="title"]') ||
                     element.querySelector('[class*="name"]') ||
+                    element.querySelector('span[class*="text"]') ||
                     element.querySelector('span');
     return titleEl?.textContent?.trim() || '未命名会话';
   }
 
   private async doubaoScrollToLoadHistory(): Promise<void> {
-    // 查找消息容器
+    // 豆包消息容器选择器
     const containerSelectors = [
       '[class*="message-list"]',
       '[class*="chat-container"]',
       '[class*="conversation-content"]',
-      '[class*="messages"]',
     ];
 
     let container: Element | null = null;
     for (const selector of containerSelectors) {
       container = document.querySelector(selector);
-      if (container) break;
+      if (container) {
+        console.log(`[OmniContext] Found message container: ${selector}`);
+        break;
+      }
     }
 
     if (!container) {
