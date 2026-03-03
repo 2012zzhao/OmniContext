@@ -1319,7 +1319,6 @@ function renderSessionMessages(session: Session) {
   }
 
   sessionViewMessages.innerHTML = session.messages.map(msg => {
-    const time = new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     const roleLabel = msg.role === 'user' ? '👤 用户' : '🤖 助手';
     const roleClass = msg.role;
 
@@ -1334,7 +1333,6 @@ function renderSessionMessages(session: Session) {
       <div class="session-message ${roleClass}">
         <div class="session-message-header">
           <span class="session-message-role">${roleLabel}</span>
-          <span class="session-message-time">${time}</span>
         </div>
         <div class="session-message-content">${content}</div>
       </div>

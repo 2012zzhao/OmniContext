@@ -929,11 +929,6 @@ body {
   margin-right: 8px;
 }
 
-.session-message-time {
-  color: #999;
-  font-weight: 400;
-}
-
 /* 对话框打开时禁止背景滚动 */
 body.dialog-open .main {
   overflow: hidden;
