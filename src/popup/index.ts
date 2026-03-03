@@ -23,6 +23,16 @@ function getPlatformIcon(platform: Platform): string {
   return `<img class="platform-logo ${platform}" src="${iconUrls[platform]}" width="16" height="16" alt="${formatPlatformName(platform)}">`;
 }
 
+// Platform assistant icon for message view (larger size)
+function getAssistantIcon(platform: Platform): string {
+  const iconUrls: Record<Platform, string> = {
+    doubao: chrome.runtime.getURL('icons/platforms/doubao.svg'),
+    yuanbao: chrome.runtime.getURL('icons/platforms/yuanbao.svg'),
+    claude: chrome.runtime.getURL('icons/platforms/claude.svg'),
+  };
+  return `<img class="assistant-icon ${platform}" src="${iconUrls[platform]}" width="18" height="18" alt="${formatPlatformName(platform)}" style="vertical-align: middle; margin-right: 4px;">`;
+}
+
 const PLATFORM_ICONS: Record<Platform, string> = {
   doubao: getPlatformIcon('doubao'),
   yuanbao: getPlatformIcon('yuanbao'),
@@ -1318,8 +1328,15 @@ function renderSessionMessages(session: Session) {
     return;
   }
 
+  // 准备平台信息
+  const assistantIcon = getAssistantIcon(session.platform);
+  const platformName = formatPlatformName(session.platform);
+
   sessionViewMessages.innerHTML = session.messages.map(msg => {
-    const roleLabel = msg.role === 'user' ? '👤 用户' : '🤖 助手';
+    // 用户显示固定图标，助手显示平台图标和名称
+    const roleLabel = msg.role === 'user'
+      ? '👤 用户'
+      : `${assistantIcon}${platformName}`;
     const roleClass = msg.role;
 
     // Highlight search keyword if present
