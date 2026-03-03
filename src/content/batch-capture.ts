@@ -78,8 +78,32 @@ export class BatchCapture {
       // 1. 先滚动侧边栏加载所有会话（带扫描进度）
       await this.scrollToLoadAllSessions();
 
+      // 检查取消
+      if (this.isCancelled) {
+        this.reportProgress({
+          total: 0,
+          current: 0,
+          currentTitle: '',
+          captured: 0,
+          status: 'cancelled',
+        });
+        return;
+      }
+
       // 2. 获取会话列表
       const sessionElements = await this.getSessionListElements();
+
+      // 检查取消
+      if (this.isCancelled) {
+        this.reportProgress({
+          total: 0,
+          current: 0,
+          currentTitle: '',
+          captured: 0,
+          status: 'cancelled',
+        });
+        return;
+      }
 
       if (sessionElements.length === 0) {
         this.reportProgress({
@@ -95,6 +119,18 @@ export class BatchCapture {
 
       // 3. 收集所有会话信息（不捕获，只获取标题和ID）
       for (const element of sessionElements) {
+        // 检查取消
+        if (this.isCancelled) {
+          this.reportProgress({
+            total: 0,
+            current: 0,
+            currentTitle: '',
+            captured: 0,
+            status: 'cancelled',
+          });
+          return;
+        }
+
         const title = this.getSessionTitle(element);
         const id = this.getSessionIdFromElement(element) || `${this.platform}-${Date.now()}-${Math.random()}`;
         this.discoveredSessions.push({
@@ -105,6 +141,18 @@ export class BatchCapture {
       }
 
       console.log(`[OmniContext] Discovered ${this.discoveredSessions.length} sessions`);
+
+      // 检查取消
+      if (this.isCancelled) {
+        this.reportProgress({
+          total: this.discoveredSessions.length,
+          current: 0,
+          currentTitle: '',
+          captured: 0,
+          status: 'cancelled',
+        });
+        return;
+      }
 
       // 4. 通知 popup 等待用户选择
       this.waitingForSelection = true;
@@ -352,8 +400,13 @@ export class BatchCapture {
   }
 
   cancel(): void {
+    console.log('[OmniContext] Cancel called - stopping batch capture');
     this.isCancelled = true;
+    this.waitingForSelection = false; // 跳出等待选择循环
+    this.isPaused = false;
     this.removeFloatingProgress();
+    // 清理存储的状态
+    chrome.storage.local.remove(BATCH_CAPTURE_STATE_KEY).catch(() => {});
   }
 
   /**
@@ -902,10 +955,16 @@ export class BatchCapture {
     let lastCount = 0;
     let noChangeCount = 0;
 
-    while (noChangeCount < 3) {
+    while (noChangeCount < 3 && !this.isCancelled) {
       // 滚动到底部
       (scrollContainer as HTMLElement).scrollTop = scrollContainer.scrollHeight;
       await this.sleep(800);
+
+      // 检查取消
+      if (this.isCancelled) {
+        console.log('[OmniContext] Sidebar scan cancelled');
+        return;
+      }
 
       // 检查会话数量是否增加
       // 使用更精确的选择器，避免匹配到消息区域的元素
@@ -931,6 +990,12 @@ export class BatchCapture {
         lastCount = currentCount;
         noChangeCount = 0;
       }
+    }
+
+    // 检查取消
+    if (this.isCancelled) {
+      console.log('[OmniContext] Sidebar scan cancelled after loop');
+      return;
     }
 
     // 扫描完成
