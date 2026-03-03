@@ -18,7 +18,7 @@ Seamlessly share chat context across different AI assistants (including Doubao a
 
 ## 安装使用
 
-### 快速开始（推荐）
+### 途径1：直接安装使用（推荐）
 
 不需要安装 Node.js，直接下载使用：
 
@@ -35,7 +35,7 @@ git clone https://github.com/2012zzhao/OmniContext.git
 
 即可开始使用！
 
-### 从源码构建
+### 途径2：基于源码自行构建
 
 如果你想修改代码或参与开发：
 

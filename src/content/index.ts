@@ -1,5 +1,5 @@
 import { sessionStorage } from '../storage/session-storage';
-import { detectPlatform, extractSessionId, createMessageExtractor } from '../utils/extractor';
+import { detectPlatform, extractSessionId, extractSessionIdFromDOM, createMessageExtractor } from '../utils/extractor';
 import { startBatchCapture, pauseBatchCapture, resumeBatchCapture, cancelBatchCapture, isBatchCaptureRunning, getBatchCaptureProgress, setSelectedSessions } from './batch-capture';
 import type { Platform, Session, Message } from '../types';
 
@@ -13,7 +13,9 @@ let currentPlatform: Platform | null = null;
 let currentSessionId: string | null = null;
 let lastMessageCount = 0;
 let lastMessageHash = '';
+let lastSavedMessages: Message[] = [];
 let pendingSave: number | null = null;
+let saveTimeout: number | null = null;
 let observer: MutationObserver | null = null;
 
 // Check if extension context is still valid
@@ -44,7 +46,22 @@ function init() {
       return;
     }
 
+    // First try URL-based extraction
     currentSessionId = extractSessionId(url, currentPlatform);
+
+    // For platforms like Yuanbao, try DOM-based extraction
+    // This is needed because the session ID might not be in the URL
+    if (currentPlatform === 'yuanbao') {
+      // Delay to allow page to fully load
+      setTimeout(() => {
+        const domSessionId = extractSessionIdFromDOM(currentPlatform!);
+        if (domSessionId) {
+          currentSessionId = domSessionId;
+          log('Updated session ID from DOM:', currentSessionId);
+        }
+      }, 1000);
+    }
+
     log('Detected:', currentPlatform, 'Session:', currentSessionId);
 
     startCapturing();
@@ -80,6 +97,19 @@ function tryCapture() {
   if (!currentPlatform || !isExtensionContextValid()) return;
 
   try {
+    // For Yuanbao, always re-extract session ID from DOM (URL doesn't change when switching sessions)
+    if (currentPlatform === 'yuanbao') {
+      const domSessionId = extractSessionIdFromDOM(currentPlatform);
+      if (domSessionId && domSessionId !== currentSessionId) {
+        log('Session ID changed from', currentSessionId, 'to', domSessionId);
+        currentSessionId = domSessionId;
+        // Reset tracking for new session
+        lastMessageCount = 0;
+        lastMessageHash = '';
+        lastSavedMessages = [];
+      }
+    }
+
     const extractor = createMessageExtractor(currentPlatform);
     const messages = extractor.extractMessages();
 
@@ -98,9 +128,6 @@ function tryCapture() {
     log('Capture error:', err);
   }
 }
-
-let saveTimeout: number | null = null;
-let lastSavedMessages: Message[] = [];
 
 function saveSessionDebounced(messages: Message[]) {
   // Debounce saves: wait 500ms before actually saving
@@ -121,9 +148,23 @@ function saveSessionDebounced(messages: Message[]) {
 }
 
 async function doSave(messages: Message[]) {
-  if (!currentPlatform || !currentSessionId) return;
+  if (!currentPlatform) return;
 
   try {
+    // For platforms like Yuanbao, try to get session ID from DOM if not set
+    if (!currentSessionId || currentSessionId.startsWith('yuanbao-')) {
+      const domSessionId = extractSessionIdFromDOM(currentPlatform);
+      if (domSessionId) {
+        currentSessionId = domSessionId;
+        log('Updated session ID from DOM:', currentSessionId);
+      }
+    }
+
+    if (!currentSessionId) {
+      log('No session ID available, skipping save');
+      return;
+    }
+
     const extractor = createMessageExtractor(currentPlatform);
     const title = extractor.extractTitle();
 

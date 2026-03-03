@@ -98,6 +98,11 @@ export function extractSessionId(url: string, platform: Platform): string {
         return part;
       }
     }
+
+    // IMPORTANT: For Yuanbao, the session ID is typically in the DOM, not the URL
+    // This fallback will be overridden by extractSessionIdFromDOM in content script
+    // Use a timestamp-based ID to avoid collisions during initial load
+    console.warn('[OmniContext] Yuanbao session ID not found in URL, will extract from DOM');
   }
 
   // Default: try to find UUID or ID in path
@@ -123,6 +128,67 @@ export function extractSessionId(url: string, platform: Platform): string {
   // This ensures different URLs get different IDs even if no explicit ID found
   const pathHash = pathParts.join('/') || 'root';
   return `${platform}-${simpleHash(pathHash)}`;
+}
+
+/**
+ * Extract session ID from DOM (for platforms like Yuanbao where ID is not in URL)
+ * This should be called from content script after page loads
+ */
+export function extractSessionIdFromDOM(platform: Platform): string | null {
+  if (platform === 'yuanbao') {
+    // Method 1: Check active session in sidebar
+    const activeItem = document.querySelector('.yb-recent-conv-list__item.active [data-item-id]');
+    if (activeItem) {
+      const id = activeItem.getAttribute('data-item-id');
+      if (id) {
+        console.log('[OmniContext] Found Yuanbao session ID from active sidebar item:', id);
+        return id;
+      }
+    }
+
+    // Method 2: Check dt-cid attribute on active item
+    const activeByCid = document.querySelector('.yb-recent-conv-list__item.active');
+    if (activeByCid) {
+      const cid = activeByCid.getAttribute('dt-cid');
+      if (cid) {
+        console.log('[OmniContext] Found Yuanbao session ID from dt-cid:', cid);
+        return cid;
+      }
+    }
+
+    // Method 3: Check data-conv-id on message items (format: sessionId_msgIndex)
+    const messageItem = document.querySelector('.agent-chat__list__item[data-conv-id]');
+    if (messageItem) {
+      const convId = messageItem.getAttribute('data-conv-id');
+      if (convId) {
+        // Extract session ID from format like "uuid_1"
+        const parts = convId.split('_');
+        if (parts.length >= 1) {
+          const sessionId = parts.slice(0, -1).join('_') || convId;
+          console.log('[OmniContext] Found Yuanbao session ID from message data-conv-id:', sessionId);
+          return sessionId;
+        }
+      }
+    }
+
+    // Method 4: Check URL for any dynamic updates
+    const currentUrl = window.location.href;
+    const urlObj = new URL(currentUrl);
+
+    // Some versions might use query params
+    const chatId = urlObj.searchParams.get('chatId') ||
+                   urlObj.searchParams.get('id') ||
+                   urlObj.searchParams.get('cid');
+    if (chatId) {
+      console.log('[OmniContext] Found Yuanbao session ID from URL params:', chatId);
+      return chatId;
+    }
+
+    console.warn('[OmniContext] Could not extract Yuanbao session ID from DOM');
+    return null;
+  }
+
+  return null;
 }
 
 // Simple string hash function

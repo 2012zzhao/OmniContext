@@ -1,5 +1,5 @@
 import { sessionStorage } from '../storage/session-storage';
-import { createMessageExtractor } from '../utils/extractor';
+import { createMessageExtractor, extractSessionIdFromDOM } from '../utils/extractor';
 import type { Platform, Session } from '../types';
 
 export interface DiscoveredSession {
@@ -661,6 +661,9 @@ export class BatchCapture {
     if (this.platform === 'doubao') {
       return this.getDoubaoSessionListElements();
     }
+    if (this.platform === 'yuanbao') {
+      return this.getYuanbaoSessionListElements();
+    }
     // 其他平台待实现
     return [];
   }
@@ -669,12 +672,18 @@ export class BatchCapture {
     if (this.platform === 'doubao') {
       return this.getDoubaoSessionTitle(element);
     }
+    if (this.platform === 'yuanbao') {
+      return this.getYuanbaoSessionTitle(element);
+    }
     return '未知会话';
   }
 
   protected getSessionIdFromElement(element: Element): string | null {
     if (this.platform === 'doubao') {
       return this.getDoubaoSessionIdFromElement(element);
+    }
+    if (this.platform === 'yuanbao') {
+      return this.getYuanbaoSessionIdFromElement(element);
     }
     return null;
   }
@@ -683,7 +692,20 @@ export class BatchCapture {
    * 统计侧边栏中的会话数量（使用与 getSessionListElements 相同的选择器）
    */
   private countSessionsInSidebar(sidebar: Element): number {
-    // 使用精确的选择器，只匹配侧边栏内的会话项
+    // 根据平台使用不同的选择器
+    if (this.platform === 'yuanbao') {
+      // 元宝平台：查找 .yb-recent-conv-list__item
+      const items = sidebar.querySelectorAll('.yb-recent-conv-list__item');
+      // 过滤：需要有会话ID标识
+      let count = 0;
+      items.forEach(item => {
+        const hasId = item.querySelector('[data-item-id]') || item.hasAttribute('dt-cid');
+        if (hasId) count++;
+      });
+      return count;
+    }
+
+    // 豆包平台：使用精确的选择器，只匹配侧边栏内的会话项
     const selectors = [
       '#flow_chat_sidebar [class*="chat-item"]',
       '[data-testid="flow_chat_sidebar"] [class*="chat-item"]',
@@ -749,11 +771,52 @@ export class BatchCapture {
   }
 
   protected async clickSession(element: Element): Promise<void> {
-    (element as HTMLElement).click();
+    if (this.platform === 'yuanbao') {
+      // 元宝：点击 item-name 子元素
+      const itemName = element.querySelector('.yb-recent-conv-list__item-name');
+      if (itemName) {
+        const sessionTitle = itemName.textContent;
+        console.log('[OmniContext] Clicking Yuanbao session:', sessionTitle);
+        (itemName as HTMLElement).click();
+      } else {
+        console.log('[OmniContext] Clicking Yuanbao session element directly');
+        (element as HTMLElement).click();
+      }
+    } else {
+      (element as HTMLElement).click();
+    }
   }
 
   protected async waitForSessionLoad(): Promise<void> {
-    await this.sleep(1500); // 等待页面加载
+    if (this.platform === 'yuanbao') {
+      // 元宝：等待 active 类变化和消息加载
+      await this.sleep(800); // 初始等待
+
+      // 等待消息区域更新（最多5秒）
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (attempts < maxAttempts) {
+        const messages = document.querySelectorAll('.agent-chat__list__item');
+        if (messages.length > 0) {
+          console.log('[OmniContext] Yuanbao messages loaded:', messages.length);
+          break;
+        }
+        await this.sleep(500);
+        attempts++;
+      }
+
+      // 等待 active 类更新
+      const activeItem = document.querySelector('.yb-recent-conv-list__item.active [data-item-id]');
+      if (activeItem) {
+        const activeId = activeItem.getAttribute('data-item-id');
+        console.log('[OmniContext] Current active sidebar item:', activeId);
+      }
+
+      // 额外等待确保内容完全加载
+      await this.sleep(800);
+    } else {
+      await this.sleep(1500);
+    }
   }
 
   /**
@@ -762,6 +825,9 @@ export class BatchCapture {
   protected async scrollToLoadHistory(): Promise<number> {
     if (this.platform === 'doubao') {
       return this.doubaoScrollToLoadHistory();
+    }
+    if (this.platform === 'yuanbao') {
+      return this.yuanbaoScrollToLoadHistory();
     }
     return 0;
   }
@@ -792,11 +858,27 @@ export class BatchCapture {
       const messages = extractor.extractMessages();
       const title = extractor.extractTitle();
 
-      if (messages.length === 0) return null;
+      console.log('[OmniContext] captureCurrentSession: platform=', this.platform, 'messages=', messages.length, 'title=', title);
 
-      // 从 URL 提取 session ID
+      if (messages.length === 0) {
+        console.warn('[OmniContext] No messages found, skipping');
+        return null;
+      }
+
+      // 提取 session ID
       const url = window.location.href;
-      const sessionId = this.extractSessionId(url);
+      let sessionId: string;
+
+      // 对于元宝，使用 DOM 提取会话ID（URL 不包含会话ID）
+      if (this.platform === 'yuanbao') {
+        const domSessionId = extractSessionIdFromDOM(this.platform);
+        sessionId = domSessionId || this.extractSessionId(url);
+        console.log('[OmniContext] Yuanbao session ID from DOM:', sessionId);
+      } else {
+        sessionId = this.extractSessionId(url);
+      }
+
+      console.log('[OmniContext] Final session ID:', sessionId);
 
       const session: Session = {
         id: sessionId,
@@ -823,9 +905,18 @@ export class BatchCapture {
         if (existing.messageCount !== messages.length) {
           isUpdated = true;
         }
+        console.log('[OmniContext] Session exists, isNew=', isNew, 'isUpdated=', isUpdated);
+      } else {
+        console.log('[OmniContext] New session');
       }
 
       await sessionStorage.saveSessionOptimized(session);
+      console.log('[OmniContext] ✓ Session saved:', sessionId, title);
+
+      // Verify save
+      const saved = await sessionStorage.getSession(sessionId);
+      console.log('[OmniContext] Verification - session exists in storage:', !!saved);
+
       return { session, isNew, isUpdated, oldCount };
 
     } catch (err) {
@@ -854,12 +945,24 @@ export class BatchCapture {
     // 1. 首先确保侧边栏打开
     await this.ensureSidebarOpen();
 
-    // 2. 查找侧边栏滚动容器
-    const sidebarSelectors = [
-      '#flow_chat_sidebar',
-      '[data-testid="flow_chat_sidebar"]',
-      '[class*="sidebar"]',
-    ];
+    // 2. 查找侧边栏滚动容器（平台特定）
+    let sidebarSelectors: string[];
+
+    if (this.platform === 'yuanbao') {
+      sidebarSelectors = [
+        '.yb-nav__content',
+        '.yb-common-nav',
+        '.yb-nav',
+        '[class*="recent-conv-list"]',
+      ];
+    } else {
+      // 豆包及其他平台
+      sidebarSelectors = [
+        '#flow_chat_sidebar',
+        '[data-testid="flow_chat_sidebar"]',
+        '[class*="sidebar"]',
+      ];
+    }
 
     let sidebar: Element | null = null;
     for (const selector of sidebarSelectors) {
@@ -1025,6 +1128,15 @@ export class BatchCapture {
   }
 
   private async ensureSidebarOpen(): Promise<void> {
+    if (this.platform === 'doubao') {
+      return this.ensureDoubaoSidebarOpen();
+    }
+    if (this.platform === 'yuanbao') {
+      return this.ensureYuanbaoSidebarOpen();
+    }
+  }
+
+  private async ensureDoubaoSidebarOpen(): Promise<void> {
     // 检查侧边栏是否存在且可见
     const sidebar = document.querySelector('#flow_chat_sidebar');
 
@@ -1036,7 +1148,7 @@ export class BatchCapture {
 
       // 如果侧边栏被移出视图（translateX(-100%) 或类似）
       if (transform.includes('translate') && rect.x < 0) {
-        console.log('[OmniContext] Sidebar is hidden, trying to open it');
+        console.log('[OmniContext] Doubao sidebar is hidden, trying to open it');
 
         // 尝试找到打开侧边栏的按钮
         const openButtonSelectors = [
@@ -1058,18 +1170,65 @@ export class BatchCapture {
             // 检查是否成功打开
             const newRect = sidebar.getBoundingClientRect();
             if (newRect.x >= 0) {
-              console.log('[OmniContext] Sidebar opened successfully');
+              console.log('[OmniContext] Doubao sidebar opened successfully');
               return;
             }
           }
         }
 
-        console.warn('[OmniContext] Could not find button to open sidebar');
+        console.warn('[OmniContext] Could not find button to open Doubao sidebar');
       } else {
-        console.log('[OmniContext] Sidebar is already visible');
+        console.log('[OmniContext] Doubao sidebar is already visible');
       }
     } else {
-      console.warn('[OmniContext] Sidebar element not found');
+      console.warn('[OmniContext] Doubao sidebar element not found');
+    }
+  }
+
+  private async ensureYuanbaoSidebarOpen(): Promise<void> {
+    // 元宝的侧边栏选择器
+    const sidebar = document.querySelector('.yb-nav') ||
+                    document.querySelector('.yb-common-nav');
+
+    if (sidebar) {
+      const rect = sidebar.getBoundingClientRect();
+      const style = window.getComputedStyle(sidebar);
+
+      // 检查侧边栏是否可见
+      if (rect.width > 0 && style.visibility !== 'hidden') {
+        console.log('[OmniContext] Yuanbao sidebar is already visible');
+        return;
+      }
+
+      console.log('[OmniContext] Yuanbao sidebar is hidden, trying to open it');
+
+      // 尝试找到打开侧边栏的按钮
+      const openButtonSelectors = [
+        '.yb-nav-fixed__trigger',
+        '.yb-common-nav__trigger',
+        '[class*="sidebar-trigger"]',
+        'button[class*="nav-trigger"]',
+      ];
+
+      for (const selector of openButtonSelectors) {
+        const button = document.querySelector(selector);
+        if (button) {
+          console.log(`[OmniContext] Found Yuanbao open button: ${selector}`);
+          (button as HTMLElement).click();
+          await this.sleep(1000);
+
+          // 检查是否成功打开
+          const newRect = sidebar.getBoundingClientRect();
+          if (newRect.width > 0) {
+            console.log('[OmniContext] Yuanbao sidebar opened successfully');
+            return;
+          }
+        }
+      }
+
+      console.warn('[OmniContext] Could not find button to open Yuanbao sidebar');
+    } else {
+      console.warn('[OmniContext] Yuanbao sidebar element not found');
     }
   }
 
@@ -1217,6 +1376,171 @@ export class BatchCapture {
 
     // 返回最终消息数
     return this.countDoubaoMessages(root);
+  }
+
+  // ========== 元宝平台特定实现 ==========
+
+  private getYuanbaoSessionListElements(): Element[] {
+    // 元宝的会话列表选择器
+    // 先检查侧边栏是否存在
+    const sidebar = document.querySelector('.yb-nav') ||
+                    document.querySelector('.yb-common-nav') ||
+                    document.querySelector('.yb-nav__content');
+
+    if (!sidebar) {
+      console.warn('[OmniContext] Yuanbao sidebar not found');
+      return [];
+    }
+
+    console.log('[OmniContext] Found Yuanbao sidebar');
+
+    // 多种选择器尝试
+    const selectors = [
+      // 最精确：在侧边栏内的会话项
+      '.yb-nav .yb-recent-conv-list .yb-recent-conv-list__item',
+      '.yb-common-nav .yb-recent-conv-list .yb-recent-conv-list__item',
+      '.yb-nav__content .yb-recent-conv-list .yb-recent-conv-list__item',
+      // 直接选择器
+      '.yb-recent-conv-list .yb-recent-conv-list__item',
+      '.yb-recent-conv-list__item',
+    ];
+
+    for (const selector of selectors) {
+      try {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          console.log(`[OmniContext] Found ${elements.length} Yuanbao sessions with: ${selector}`);
+          // 过滤掉分隔符等非会话项
+          const filtered = Array.from(elements).filter(el => {
+            // 确保有会话ID标识
+            const hasId = el.querySelector('[data-item-id]') ||
+                          el.hasAttribute('dt-cid');
+            return hasId;
+          });
+          console.log(`[OmniContext] After filtering: ${filtered.length} valid sessions`);
+          return filtered;
+        }
+      } catch (e) {
+        console.warn(`[OmniContext] Selector failed: ${selector}`, e);
+      }
+    }
+
+    // 降级：直接在侧边栏内搜索
+    if (sidebar) {
+      const items = sidebar.querySelectorAll('[class*="conv-list__item"]');
+      console.log(`[OmniContext] Fallback: found ${items.length} items in sidebar`);
+      return Array.from(items).filter(el => {
+        return el.querySelector('[data-item-id]') || el.hasAttribute('dt-cid');
+      });
+    }
+
+    console.warn('[OmniContext] No Yuanbao session list found');
+    return [];
+  }
+
+  private getYuanbaoSessionTitle(element: Element): string {
+    // 元宝会话标题在 data-item-name 属性或 .yb-recent-conv-list__item-name 元素中
+    const dataName = element.querySelector('[data-item-name]');
+    if (dataName) {
+      const name = dataName.getAttribute('data-item-name');
+      if (name) return name;
+    }
+
+    // 备选：从 item-name 元素获取
+    const titleEl = element.querySelector('.yb-recent-conv-list__item-name');
+    return titleEl?.textContent?.trim() || '未命名会话';
+  }
+
+  private getYuanbaoSessionIdFromElement(element: Element): string | null {
+    // 元宝会话ID在 data-item-id 属性中
+    const nameEl = element.querySelector('[data-item-id]');
+    if (nameEl) {
+      const id = nameEl.getAttribute('data-item-id');
+      if (id) return id;
+    }
+
+    // 备选：从 dt-cid 属性获取（跟踪属性）
+    const cid = element.getAttribute('dt-cid');
+    if (cid) return cid;
+
+    return null;
+  }
+
+  private countYuanbaoMessages(root: Element): number {
+    // 元宝消息选择器
+    const selectors = [
+      '.agent-chat__list__item',
+      '.agent-chat__bubble--human',
+      '.agent-chat__bubble--ai',
+    ];
+
+    let maxCount = 0;
+    for (const selector of selectors) {
+      const elements = root.querySelectorAll(selector);
+      if (elements.length > maxCount) {
+        maxCount = elements.length;
+      }
+    }
+    return maxCount;
+  }
+
+  private async yuanbaoScrollToLoadHistory(): Promise<number> {
+    // 查找消息区域的根容器
+    const rootSelectors = [
+      '.agent-chat__list',
+      '.agent-dialogue__content',
+      '[class*="chat-list"]',
+    ];
+
+    let root: Element | null = null;
+    for (const selector of rootSelectors) {
+      root = document.querySelector(selector);
+      if (root) {
+        console.log(`[OmniContext] Found Yuanbao message root: ${selector}`);
+        break;
+      }
+    }
+
+    if (!root) {
+      console.warn('[OmniContext] Yuanbao message container not found');
+      return 0;
+    }
+
+    // 查找真正可滚动的容器
+    const container = this.findScrollableContainer(root);
+
+    if (!container) {
+      console.warn('[OmniContext] No scrollable Yuanbao message container found');
+      return this.countYuanbaoMessages(root);
+    }
+
+    console.log(`[OmniContext] Scrolling Yuanbao message container`);
+
+    // 滚动到顶部加载历史
+    let lastHeight = container.scrollHeight;
+    let noChangeCount = 0;
+    let messageCount = this.countYuanbaoMessages(root);
+
+    while (noChangeCount < 3 && !this.isCancelled) {
+      (container as HTMLElement).scrollTop = 0;
+      await this.sleep(500);
+
+      if (this.isCancelled) {
+        console.log('[OmniContext] Yuanbao scroll cancelled');
+        return messageCount;
+      }
+
+      if (container.scrollHeight === lastHeight) {
+        noChangeCount++;
+      } else {
+        lastHeight = container.scrollHeight;
+        noChangeCount = 0;
+        messageCount = this.countYuanbaoMessages(root);
+        console.log(`[OmniContext] Yuanbao history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+      }
+    }
+
+    return this.countYuanbaoMessages(root);
   }
 }
 
