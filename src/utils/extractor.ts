@@ -610,12 +610,15 @@ class PlatformMessageExtractor implements MessageExtractor {
 
     for (const child of children) {
       const className = (child.className || '').toLowerCase();
+      const tagName = child.tagName.toLowerCase();
 
-      // Skip thinking sections
+      // Skip thinking sections (class-based and tag-based)
       if (className.includes('thinking') ||
           className.includes('thought') ||
           className.includes('reasoning') ||
-          className.includes('process')) {
+          className.includes('process') ||
+          tagName === 'deep-thinking' ||
+          tagName === 'thinking') {
         continue;
       }
 
@@ -639,7 +642,14 @@ class PlatformMessageExtractor implements MessageExtractor {
       /^Think(ing)?[:：]/i,
       /^正在分析/,
       /^推理过程/,
+      /^深度思考/,
+      /^Deep[\s-]?Thinking/i,
     ];
+
+    // Check for thinking tags
+    if (text.includes('<deep-thinking>') || text.includes('<thinking>')) {
+      return true;
+    }
 
     return thinkingPatterns.some(p => p.test(text.trim()));
   }
@@ -649,6 +659,7 @@ class PlatformMessageExtractor implements MessageExtractor {
     const prefixes = [
       /【思考】[\s\S]*?【回答】/,
       /<thinking>[\s\S]*?<\/thinking>/gi,
+      /<deep-thinking>[\s\S]*?<\/deep-thinking>/gi,
       /思考过程：[\s\S]*?(?=\n\n|回答)/,
     ];
 
