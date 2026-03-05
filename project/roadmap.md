@@ -4,6 +4,99 @@
 
 ---
 
+## 2026-03-05 Phase 2 新增：API 读写功能
+
+**摘要：** 新增 API 读写能力，让用户程序和 Agent 也能读写 memory
+
+**正文：**
+
+### 功能定位
+OmniContext 成为连接 AI 助手和用户程序/Agent 的上下文管理中心：
+- **网页捕获**：主流 AI 助手（豆包、元宝、Claude、DeepSeek、Kimi）
+- **API 读写**：用户程序、Agent 通过 Python SDK / HTTP API 读写 memory
+
+### 架构概览
+
+```
+┌─────────────┐    网页捕获    ┌─────────────┐    Popup 查看    ┌─────────┐
+│ AI 助手网页  │ ────────────→ │             │ ────────────────→ │ 用户    │
+│ (豆包/Kimi等)│    (只写)     │             │                   │ (UI)   │
+└─────────────┘               │             │                   └─────────┘
+                              │ OmniContext │
+┌─────────────────┐ API 读/写  │  本地服务    │
+│ 用户程序/Agent  │ ←────────→ │  (SQLite)   │
+│ (Python SDK)   │            └─────────────┘
+└─────────────────┘
+```
+
+### 技术方案
+
+| 组件 | 技术选型 |
+|------|---------|
+| 本地服务 | Python FastAPI（先）→ Rust（后） |
+| 数据存储 | SQLite |
+| SDK | Python 3.8+ |
+| 扩展通信 | Native Messaging |
+
+### 数据模型
+
+```typescript
+interface Session {
+  id: string;
+  source: 'platform' | 'api';  // 新增：来源字段
+  platform?: Platform;          // 仅 source=platform 时
+  title: string;
+  messages: Message[];
+  metadata?: Record<string, any>;
+  createdAt: number;
+  updatedAt: number;
+}
+```
+
+### 实现计划
+
+#### Phase 2.1: 本地服务基础
+- [ ] 创建 Python 项目结构 (`server/`)
+- [ ] 实现 SQLite 存储层
+- [ ] 实现 HTTP API (FastAPI)
+- [ ] 实现 Native Messaging Host
+
+#### Phase 2.2: Chrome 扩展集成
+- [ ] 添加 Native Messaging 配置
+- [ ] 扩展数据同步到本地服务
+- [ ] Popup 可选读取本地服务数据
+
+#### Phase 2.3: Python SDK
+- [ ] 实现 SDK 核心功能 (`omnicontext` 包)
+- [ ] 编写文档和示例
+- [ ] 发布到 PyPI
+
+#### Phase 2.4: 优化与扩展
+- [ ] 性能优化
+- [ ] Rust 重构（可选）
+- [ ] 其他语言 SDK（可选）
+
+### API 设计预览
+
+```python
+import omnicontext
+
+client = omnicontext.Client()
+
+# 读取
+sessions = client.get_sessions(source="platform", platform="kimi")
+sessions = client.search_sessions(query="用户偏好")
+
+# 写入
+client.write_session(title="Agent对话", messages=[...])
+
+# Memory 便捷接口
+client.write_memory(content="用户偏好Python", metadata={"type": "preference"})
+memories = client.search_memories(query="用户偏好", limit=5)
+```
+
+---
+
 ## 2026-03-05 Phase 1 进度更新（DeepSeek平台适配）
 
 **摘要：** 完成 DeepSeek 平台适配，包括单条捕获、批量捕获、消息提取和思考内容过滤

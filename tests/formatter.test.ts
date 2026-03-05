@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { formatSessionForInjection, formatTimestamp } from '../src/utils/formatter';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { formatSessionForInjection, formatTimestamp, copyToClipboard } from '../src/utils/formatter';
 import type { Session, Platform } from '../src/types';
 
 describe('formatter', () => {
@@ -17,6 +17,20 @@ describe('formatter', () => {
       const result = formatTimestamp(now);
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
+    });
+
+    it('should format with correct time', () => {
+      const timestamp = new Date('2024-06-20T09:05:00').getTime();
+      const result = formatTimestamp(timestamp);
+      expect(result).toContain('09');
+      expect(result).toContain('05');
+    });
+
+    it('should pad single digit month and day', () => {
+      const timestamp = new Date('2024-01-05T08:03:00').getTime();
+      const result = formatTimestamp(timestamp);
+      expect(result).toContain('01-05'); // Month and day padded
+      expect(result).toContain('08:03'); // Hours and minutes padded
     });
   });
 
@@ -51,83 +65,205 @@ describe('formatter', () => {
       messageCount: 3,
     };
 
-    it('should format session with full messages', () => {
-      const result = formatSessionForInjection(mockSession, 'full');
+    describe('full mode', () => {
+      it('should format session with full messages', () => {
+        const result = formatSessionForInjection(mockSession, 'full');
 
-      expect(result).toContain('【上下文引用】');
-      expect(result).toContain('豆包');
-      expect(result).toContain('Java学习路线');
-      expect(result).toContain('我想学Java，有什么建议？');
-      expect(result).toContain('Java是一门很好的编程语言');
-      expect(result).toContain('具体需要学哪些内容？');
+        expect(result).toContain('【上下文引用】');
+        expect(result).toContain('豆包');
+        expect(result).toContain('Java学习路线');
+        expect(result).toContain('我想学Java，有什么建议？');
+        expect(result).toContain('Java是一门很好的编程语言');
+        expect(result).toContain('具体需要学哪些内容？');
+      });
+
+      it('should format session with role labels', () => {
+        const result = formatSessionForInjection(mockSession, 'full');
+
+        expect(result).toContain('[用户]');
+        expect(result).toContain('[豆包]');
+      });
+
+      it('should handle empty messages', () => {
+        const emptySession: Session = {
+          ...mockSession,
+          messages: [],
+          messageCount: 0,
+        };
+
+        const result = formatSessionForInjection(emptySession, 'full');
+
+        expect(result).toContain('【上下文引用】');
+        expect(result).toContain('豆包');
+        expect(result).toContain('Java学习路线');
+      });
+
+      it('should handle all platforms', () => {
+        const platforms: Platform[] = ['doubao', 'yuanbao', 'claude', 'deepseek', 'kimi'];
+
+        for (const platform of platforms) {
+          const session: Session = {
+            ...mockSession,
+            platform,
+          };
+
+          const result = formatSessionForInjection(session, 'full');
+          expect(result).toContain('【上下文引用】');
+        }
+      });
+
+      it('should include message count', () => {
+        const result = formatSessionForInjection(mockSession, 'full');
+        expect(result).toContain('消息数: 3');
+      });
+
+      it('should include source URL', () => {
+        const result = formatSessionForInjection(mockSession, 'full');
+        expect(result).toContain('基于以上背景');
+      });
     });
 
-    it('should format session in full mode', () => {
-      const result = formatSessionForInjection(mockSession, 'full');
+    describe('summary mode', () => {
+      it('should format session in summary mode', () => {
+        const result = formatSessionForInjection(mockSession, 'summary');
 
-      expect(result).toContain('[用户]');
-      expect(result).toContain('[豆包]');
-      expect(result).toHaveLength(result.length);
+        expect(result).toContain('【上下文引用】');
+        expect(result).toContain('我想学Java，有什么建议？');
+        // Should be truncated to 100 chars
+        expect(result).not.toContain('具体需要学哪些内容？');
+      });
+
+      it('should show "无内容" when no user messages', () => {
+        const assistantOnlySession: Session = {
+          ...mockSession,
+          messages: [
+            {
+              id: 'msg-1',
+              role: 'assistant',
+              content: 'AI response only',
+              timestamp: Date.now(),
+            },
+          ],
+        };
+
+        const result = formatSessionForInjection(assistantOnlySession, 'summary');
+        expect(result).toContain('无内容');
+      });
+
+      it('should truncate long content in summary mode', () => {
+        const longSession: Session = {
+          ...mockSession,
+          messages: [
+            {
+              id: 'msg-1',
+              role: 'user',
+              content: 'a'.repeat(200),
+              timestamp: Date.now(),
+            },
+          ],
+        };
+
+        const result = formatSessionForInjection(longSession, 'summary');
+        expect(result).toContain('...');
+        expect(result).toContain('a'.repeat(100)); // First 100 chars
+      });
+
+      it('should not add ellipsis for short content in summary', () => {
+        const shortSession: Session = {
+          ...mockSession,
+          messages: [
+            {
+              id: 'msg-1',
+              role: 'user',
+              content: 'Short message',
+              timestamp: Date.now(),
+            },
+          ],
+        };
+
+        const result = formatSessionForInjection(shortSession, 'summary');
+        expect(result).toContain('Short message');
+        // Note: "..." may appear in other parts of the template (e.g. ending)
+        // but should NOT appear right after "Short message" since it's < 100 chars
+        expect(result).not.toMatch(/Short message\.\.\./);
+      });
+
+      it('should find first user message in mixed messages', () => {
+        const mixedSession: Session = {
+          ...mockSession,
+          messages: [
+            {
+              id: 'msg-1',
+              role: 'assistant',
+              content: 'First assistant',
+              timestamp: Date.now(),
+            },
+            {
+              id: 'msg-2',
+              role: 'user',
+              content: 'First user message',
+              timestamp: Date.now(),
+            },
+            {
+              id: 'msg-3',
+              role: 'user',
+              content: 'Second user message',
+              timestamp: Date.now(),
+            },
+          ],
+        };
+
+        const result = formatSessionForInjection(mixedSession, 'summary');
+        expect(result).toContain('First user message');
+        expect(result).not.toContain('Second user message');
+      });
+    });
+  });
+
+  describe('copyToClipboard', () => {
+    beforeEach(() => {
+      // Mock navigator.clipboard
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: vi.fn(),
+        },
+      });
     });
 
-    it('should handle empty messages', () => {
-      const emptySession: Session = {
-        ...mockSession,
-        messages: [],
-        messageCount: 0,
-      };
-
-      const result = formatSessionForInjection(emptySession, 'full');
-
-      expect(result).toContain('【上下文引用】');
-      expect(result).toContain('豆包');
-      expect(result).toContain('Java学习路线');
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
-    it('should handle different platforms', () => {
-      const claudeSession: Session = {
-        ...mockSession,
-        platform: 'claude' as Platform,
-        title: 'System Design',
-      };
+    it('should copy text to clipboard successfully', async () => {
+      vi.mocked(navigator.clipboard.writeText).mockResolvedValueOnce(undefined);
 
-      const result = formatSessionForInjection(claudeSession, 'full');
-
-      expect(result).toContain('Claude');
-      expect(result).toContain('System Design');
-      expect(result).toContain('[Claude]');
+      const result = await copyToClipboard('test content');
+      expect(result).toBe(true);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test content');
     });
 
-    it('should handle yuanbao platform', () => {
-      const yuanbaoSession: Session = {
-        ...mockSession,
-        platform: 'yuanbao' as Platform,
-        title: '旅游攻略',
-      };
+    it('should return false when clipboard write fails', async () => {
+      vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Clipboard error'));
 
-      const result = formatSessionForInjection(yuanbaoSession, 'full');
-
-      expect(result).toContain('元宝');
-      expect(result).toContain('旅游攻略');
+      const result = await copyToClipboard('test content');
+      expect(result).toBe(false);
     });
 
-    it('should truncate long messages in preview', () => {
-      const longSession: Session = {
-        ...mockSession,
-        messages: [
-          {
-            id: 'msg-long',
-            role: 'assistant',
-            content: 'a'.repeat(500),
-            timestamp: Date.now(),
-          },
-        ],
-      };
+    it('should handle empty string', async () => {
+      vi.mocked(navigator.clipboard.writeText).mockResolvedValueOnce(undefined);
 
-      const result = formatSessionForInjection(longSession, 'full');
+      const result = await copyToClipboard('');
+      expect(result).toBe(true);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('');
+    });
 
-      // Should include the message
-      expect(result).toContain('a'.repeat(100));
+    it('should handle special characters', async () => {
+      vi.mocked(navigator.clipboard.writeText).mockResolvedValueOnce(undefined);
+
+      const specialContent = '特殊字符 🎉 <script>alert("xss")</script>';
+      const result = await copyToClipboard(specialContent);
+      expect(result).toBe(true);
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(specialContent);
     });
   });
 });

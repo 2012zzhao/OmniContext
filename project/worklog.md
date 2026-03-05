@@ -4,6 +4,121 @@
 
 ---
 
+## 2026-03-05 API 读写功能架构设计
+
+**摘要：** 完成 API 读写功能的架构设计讨论，确定技术方案
+
+**正文：**
+
+### 背景
+当前 OmniContext 只能通过网页捕获主流 AI 助手的对话。本功能新增 **API 读写能力**，让用户程序和 Agent 也能读写 memory，使 OmniContext 成为连接 AI 助手和用户程序/Agent 的上下文管理中心。
+
+### 交互对象分类
+
+| 交互对象 | 渠道 | 读 | 写 |
+|---------|------|----|----|
+| AI 助手网页 | 网页捕获(Content Script) | ❌ | ✅ |
+| 用户 | Popup UI | ✅ | ✅ (标签/删除) |
+| 用户程序/Agent | **API (新增)** | ✅ | ✅ |
+
+### 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    OmniContext 本地服务                          │
+│                                                                  │
+│   ┌──────────────┐                                              │
+│   │ Native Host  │ ←── Native Messaging ──→ Chrome 扩展          │
+│   │ (stdio)      │                    (网页捕获/Popup)           │
+│   └──────┬───────┘                                              │
+│          │                                                       │
+│   ┌──────▼───────┐     ┌──────────────┐                         │
+│   │ 数据存储      │ ←── │ Memory API   │                         │
+│   │ (SQLite)     │     │ (读写逻辑)    │                         │
+│   └──────────────┘     └──────┬───────┘                         │
+│                               │                                  │
+│                        ┌──────▼───────┐                         │
+│                        │ HTTP Server  │                         │
+│                        │ :8765        │                         │
+│                        └──────┬───────┘                         │
+└───────────────────────────────│─────────────────────────────────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+        ┌─────▼─────┐     ┌─────▼─────┐    ┌──────▼──────┐
+        │ Python SDK │     │ HTTP 调用  │    │ 其他语言 SDK │
+        │(封装API)   │     │(直接调用)  │    │(未来扩展)   │
+        └───────────┘     └───────────┘    └─────────────┘
+```
+
+### 数据模型设计
+
+新增 `source` 字段区分数据来源：
+
+```typescript
+interface Session {
+  id: string;
+  source: 'platform' | 'api';    // 来源类型
+  platform?: 'doubao' | 'yuanbao' | 'claude' | 'deepseek' | 'kimi';  // 仅 source=platform 时
+  title: string;
+  messages: Message[];
+  metadata?: Record<string, any>; // API 写入可自定义扩展字段
+  createdAt: number;
+  updatedAt: number;
+}
+```
+
+- `source: 'platform'` - 来自 AI 助手网页捕获，此时 `platform` 字段必填
+- `source: 'api'` - 来自 API 写入，`platform` 字段为空，可用 `metadata` 存储自定义信息
+
+### 技术选型
+
+| 组件 | 技术选型 | 备注 |
+|------|---------|------|
+| 本地服务 | Python FastAPI | 先用 Python 快速实现 |
+| 本地服务（未来）| Rust (Axum) | 后续重构，提升安全性和性能 |
+| 数据存储 | SQLite | 单文件，查询灵活，Python 内置支持 |
+| Python SDK | Python 3.8+ | 封装 HTTP API |
+| Chrome 扩展通信 | Native Messaging | Chrome 官方标准方案 |
+
+### 数据流
+
+| 场景 | 路径 |
+|------|------|
+| 网页捕获写入 | AI 网页 → 扩展 → Native Messaging → 本地服务 → SQLite |
+| SDK/API 写入 | Agent → Python SDK / HTTP → 本地服务 → SQLite |
+| 读取 | 扩展/SDK → HTTP API / Native Messaging → 本地服务 → SQLite |
+
+### 方案对比与决策
+
+**API 暴露方式：**
+- ❌ 文件接口 - 轮询延迟高，存在数据竞争
+- ✅ 本地服务 + Native Messaging - 实时性好，无并发问题
+
+**数据访问方式：**
+- ❌ SDK 直接访问存储 - 并发时存在数据竞争
+- ✅ 所有访问统一走 HTTP API - 服务内部控制并发
+
+### 待实现
+
+1. **Phase 1: 本地服务基础**
+   - 创建 Python 项目结构
+   - 实现 SQLite 存储层
+   - 实现 HTTP API (FastAPI)
+   - 实现 Native Messaging Host
+
+2. **Phase 2: Chrome 扩展集成**
+   - 添加 Native Messaging 配置
+   - 扩展数据同步到本地服务
+   - Popup 可选读取本地服务数据
+
+3. **Phase 3: Python SDK**
+   - 实现 SDK 核心功能
+   - 编写文档和示例
+   - 发布到 PyPI
+
+---
+
 ## 2026-03-05 Kimi 平台适配
 
 **摘要：** 完成 Kimi (kimi.com) 平台适配，支持消息捕获和批量捕获功能
