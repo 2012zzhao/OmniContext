@@ -268,6 +268,7 @@ async function doSave(messages: Message[]) {
     const now = Date.now();
     const session: Session = {
       id: currentSessionId,
+      source: 'platform',
       platform: currentPlatform,
       title: title || '未命名对话',
       sourceUrl: window.location.href,
@@ -446,6 +447,30 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
       const sidebarVisible = visibleCount > 0 || (sidebar !== null && sidebar.getBoundingClientRect().width > 0);
       console.log(`[OmniContext] Kimi sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
+      sendResponse({ sidebarVisible: true }); // 暂时总是返回 true
+    } else if (currentPlatform === 'gemini') {
+      // Gemini: 检查会话列表是否可见
+      console.log('[OmniContext] Gemini sidebar check starting...');
+
+      // 检查 /app/ 链接
+      const sessionLinks = document.querySelectorAll('a[href^="/app/"]');
+      console.log(`[OmniContext] Gemini: Found ${sessionLinks.length} session links`);
+
+      // 检查侧边栏
+      const sidebar = document.querySelector('nav, aside, [class*="sidebar"], [class*="nav"]');
+      console.log('[OmniContext] Gemini sidebar:', sidebar ? 'found' : 'not found');
+
+      // 检查可见的会话链接
+      let visibleCount = 0;
+      sessionLinks.forEach(link => {
+        const rect = link.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          visibleCount++;
+        }
+      });
+
+      const sidebarVisible = visibleCount > 0 || (sidebar !== null && sidebar.getBoundingClientRect().width > 0);
+      console.log(`[OmniContext] Gemini sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
       sendResponse({ sidebarVisible: true }); // 暂时总是返回 true
     } else {
       // 其他平台默认返回 true

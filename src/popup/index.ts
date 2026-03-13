@@ -20,7 +20,7 @@ interface IconOptions {
   extraStyle?: string;
 }
 
-function getPlatformIcon(platform: Platform, options: IconOptions = {}): string {
+function getPlatformIcon(platform: Platform | undefined, options: IconOptions = {}): string {
   const { size = 16, className = 'platform-logo', extraStyle = '' } = options;
   const iconUrls: Record<Platform, string> = {
     doubao: chrome.runtime.getURL('icons/platforms/doubao.svg'),
@@ -28,8 +28,13 @@ function getPlatformIcon(platform: Platform, options: IconOptions = {}): string 
     claude: chrome.runtime.getURL('icons/platforms/claude.svg'),
     deepseek: chrome.runtime.getURL('icons/platforms/deepseek.svg'),
     kimi: chrome.runtime.getURL('icons/platforms/kimi.svg'),
+    gemini: chrome.runtime.getURL('icons/platforms/gemini.svg'),
   };
   const style = extraStyle ? ` style="${extraStyle}"` : '';
+  const defaultIcon = '🤖'; // Fallback for unknown platforms
+  if (!platform || !iconUrls[platform]) {
+    return `<span class="${className}" style="font-size: ${size}px; line-height: ${size}px;${style}">${defaultIcon}</span>`;
+  }
   return `<img class="${className} ${platform}" src="${iconUrls[platform]}" width="${size}" height="${size}" alt="${formatPlatformName(platform)}"${style}>`;
 }
 
@@ -39,6 +44,7 @@ const PLATFORM_ICONS: Record<Platform, string> = {
   claude: getPlatformIcon('claude'),
   deepseek: getPlatformIcon('deepseek'),
   kimi: getPlatformIcon('kimi'),
+  gemini: getPlatformIcon('gemini'),
 };
 
 // DOM Elements
@@ -133,6 +139,14 @@ let currentTagSessionId: string | null = null;
 // Track collapsed state of each platform (persisted in chrome.storage.local)
 const collapsedPlatforms = new Set<string>();
 
+// Server status
+interface ServerStatus {
+  nativeHost: boolean;
+  server: boolean;
+}
+let serverStatus: ServerStatus = { nativeHost: false, server: false };
+let useServerData = false; // Toggle for reading from server
+
 // Load collapsed state from storage
 async function loadCollapsedState(): Promise<void> {
   try {
@@ -154,6 +168,41 @@ async function saveCollapsedState(): Promise<void> {
   }
 }
 
+// Check server status and update UI
+async function checkServerStatus(): Promise<ServerStatus> {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'CHECK_SERVER_STATUS' });
+    serverStatus = response || { nativeHost: false, server: false };
+    updateServerStatusUI();
+    return serverStatus;
+  } catch (e) {
+    console.error('Failed to check server status:', e);
+    serverStatus = { nativeHost: false, server: false };
+    updateServerStatusUI();
+    return serverStatus;
+  }
+}
+
+// Update server status indicator in UI
+function updateServerStatusUI() {
+  const statusEl = document.getElementById('server-status');
+  if (!statusEl) return;
+
+  if (serverStatus.server) {
+    statusEl.textContent = '●';
+    statusEl.className = 'server-status server-online';
+    statusEl.title = '本地服务器已连接';
+  } else if (serverStatus.nativeHost) {
+    statusEl.textContent = '◐';
+    statusEl.className = 'server-status server-partial';
+    statusEl.title = 'Native Host 已连接，但服务器未运行';
+  } else {
+    statusEl.textContent = '○';
+    statusEl.className = 'server-status server-offline';
+    statusEl.title = '本地服务器未连接';
+  }
+}
+
 // Debounce helper
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
   let timer: ReturnType<typeof setTimeout>;
@@ -165,6 +214,9 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
 
 // Initialize
 async function init() {
+  // Check server status
+  await checkServerStatus();
+
   // Detect current platform
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -323,7 +375,7 @@ function updateCurrentPage() {
 async function loadSessions() {
   sessionListEl.innerHTML = '<div class="loading">加载中...</div>';
 
-  // Load all tags
+  // Load all tags from local storage
   allTags = await tagStorage.getAllTags();
 
   // Update tag filter dropdown
@@ -332,8 +384,45 @@ async function loadSessions() {
     `<option value="${tag.id}">${tag.name}</option>`
   ).join('');
 
-  const sessions = await sessionStorage.getAllSessions();
-  console.log('[OmniContext] Loaded sessions:', sessions.length);
+  // Try to load from server if available, otherwise use local storage
+  let sessions: Session[] = [];
+
+  if (serverStatus.server && useServerData) {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_SESSIONS_FROM_SERVER',
+        source: 'platform',
+        limit: 1000,
+      });
+
+      if (response.success && response.data?.sessions) {
+        // Convert server format to local format
+        sessions = response.data.sessions.map((s: any) => ({
+          id: s.id,
+          source: s.source || 'platform',
+          platform: s.platform,
+          title: s.title,
+          sourceUrl: s.metadata?.sourceUrl,
+          createdAt: s.created_at,
+          updatedAt: s.updated_at,
+          messages: s.messages || [],
+          messageCount: s.messages?.length || 0,
+          tags: s.tags,
+        }));
+        console.log('[OmniContext] Loaded sessions from server:', sessions.length);
+      } else {
+        console.warn('[OmniContext] Failed to load from server, falling back to local');
+        sessions = await sessionStorage.getAllSessions();
+      }
+    } catch (e) {
+      console.error('[OmniContext] Error loading from server:', e);
+      sessions = await sessionStorage.getAllSessions();
+    }
+  } else {
+    sessions = await sessionStorage.getAllSessions();
+    console.log('[OmniContext] Loaded sessions from local storage:', sessions.length);
+  }
+
   allSessions = sessions;
 
   // Update debug info
@@ -435,12 +524,13 @@ async function renderSessions() {
 
   // Group by platform (preserving collapse state)
   const grouped = filtered.reduce((acc, session) => {
-    if (!acc[session.platform]) {
-      acc[session.platform] = [];
+    const platform = session.platform || 'unknown';
+    if (!acc[platform]) {
+      acc[platform] = [];
     }
-    acc[session.platform].push(session);
+    acc[platform].push(session);
     return acc;
-  }, {} as Record<Platform, Session[]>);
+  }, {} as Record<string, Session[]>);
 
   // Render
   const platformHtmls = await Promise.all(
@@ -1074,6 +1164,7 @@ async function handleBatchCaptureStart() {
       claude: 'Claude',
       deepseek: 'DeepSeek',
       kimi: 'Kimi',
+      gemini: 'Gemini',
     };
     showToast(`正在批量捕获 ${platformNames[currentPlatform] || currentPlatform} 的会话`);
     return;
@@ -1216,6 +1307,7 @@ function updateBatchCaptureProgress(progress: {
         claude: 'Claude',
         deepseek: 'DeepSeek',
         kimi: 'Kimi',
+        gemini: 'Gemini',
       };
       batchScanningPlatform.textContent = platformNames[currentPlatform] || currentPlatform;
     }
@@ -1415,7 +1507,7 @@ async function handleViewSession(sessionId: string) {
 
   // Set title - remove platform suffix if present to avoid duplication
   let displayTitle = session.title;
-  const platformName = formatPlatformName(session.platform);
+  const platformName = session.platform ? formatPlatformName(session.platform) : 'AI';
   // Remove " - 平台名" suffix if exists
   const suffixPattern = new RegExp(`\\s*[-–—]\\s*${platformName}\\s*$`, 'i');
   displayTitle = displayTitle.replace(suffixPattern, '');
@@ -1440,12 +1532,13 @@ function renderSessionMessages(session: Session) {
   }
 
   // 准备平台信息
-  const assistantIcon = getPlatformIcon(session.platform, {
+  const platform = session.platform;
+  const assistantIcon = getPlatformIcon(platform, {
     size: 18,
     className: 'assistant-icon',
     extraStyle: 'vertical-align: middle; margin-right: 4px;'
   });
-  const platformName = formatPlatformName(session.platform);
+  const platformName = platform ? formatPlatformName(platform) : 'AI';
 
   sessionViewMessages.innerHTML = session.messages.map(msg => {
     // 用户显示固定图标，助手显示平台图标和名称

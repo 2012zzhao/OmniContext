@@ -3,24 +3,39 @@
   "name": "OmniContext",
   "version": "1.0.0",
   "description": "跨平台AI对话上下文管理工具 - 在不同AI助手间共享记忆",
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+M",
+        "mac": "Command+M"
+      },
+      "description": "打开/关闭 OmniContext 侧边栏"
+    }
+  },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "nativeMessaging",
+    "sidePanel"
   ],
   "host_permissions": [
     "https://www.doubao.com/*",
     "https://yuanbao.tencent.com/*",
     "https://claude.ai/*",
     "https://chat.deepseek.com/*",
-    "https://www.kimi.com/*"
+    "https://www.kimi.com/*",
+    "https://gemini.google.com/*"
   ],
   "action": {
-    "default_popup": "src/popup/index.html",
+    "default_title": "OmniContext - 打开侧边栏",
     "default_icon": {
       "16": "icons/icon.svg",
       "48": "icons/icon.svg",
       "128": "icons/icon.svg"
     }
+  },
+  "side_panel": {
+    "default_path": "src/popup/index.html"
   },
   "content_scripts": [
     {
@@ -29,7 +44,8 @@
         "https://yuanbao.tencent.com/*",
         "https://claude.ai/*",
         "https://chat.deepseek.com/*",
-        "https://www.kimi.com/*"
+        "https://www.kimi.com/*",
+        "https://gemini.google.com/*"
       ],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"

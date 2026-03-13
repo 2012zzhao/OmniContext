@@ -15,7 +15,7 @@ export function formatSessionForInjection(
   session: Session,
   mode: 'full' | 'summary'
 ): string {
-  const platformName = formatPlatformName(session.platform);
+  const platformName = session.platform ? formatPlatformName(session.platform) : 'AI';
   const timestamp = formatTimestamp(session.createdAt);
 
   let content = '';

@@ -646,6 +646,7 @@ export class BatchCapture {
       claude: 'Claude',
       deepseek: 'DeepSeek',
       kimi: 'Kimi',
+      gemini: 'Gemini',
     };
     return names[platform] || platform;
   }
@@ -678,6 +679,9 @@ export class BatchCapture {
     if (this.platform === 'kimi') {
       return this.getKimiSessionListElements();
     }
+    if (this.platform === 'gemini') {
+      return this.getGeminiSessionListElements();
+    }
     // 其他平台待实现
     return [];
   }
@@ -695,6 +699,9 @@ export class BatchCapture {
     if (this.platform === 'kimi') {
       return this.getKimiSessionTitle(element);
     }
+    if (this.platform === 'gemini') {
+      return this.getGeminiSessionTitle(element);
+    }
     return '未知会话';
   }
 
@@ -710,6 +717,9 @@ export class BatchCapture {
     }
     if (this.platform === 'kimi') {
       return this.getKimiSessionIdFromElement(element);
+    }
+    if (this.platform === 'gemini') {
+      return this.getGeminiSessionIdFromElement(element);
     }
     return null;
   }
@@ -848,6 +858,23 @@ export class BatchCapture {
           break;
         }
       }
+    } else if (this.platform === 'gemini') {
+      // Gemini: 会话是链接，点击后等待 URL 变化
+      const currentUrl = window.location.href;
+      const href = element.getAttribute('href') || '';
+      console.log('[OmniContext] Gemini: Clicking session with href:', href);
+
+      // 直接点击链接
+      (element as HTMLElement).click();
+
+      // 等待 URL 变化
+      for (let i = 0; i < 20; i++) {
+        await this.sleep(200);
+        if (window.location.href !== currentUrl) {
+          console.log('[OmniContext] Gemini: URL changed to', window.location.href);
+          break;
+        }
+      }
     } else {
       (element as HTMLElement).click();
     }
@@ -919,6 +946,26 @@ export class BatchCapture {
 
       // 额外等待确保内容完全渲染
       await this.sleep(800);
+    } else if (this.platform === 'gemini') {
+      // Gemini: 等待消息元素加载
+      await this.sleep(500); // 初始等待
+
+      // 等待消息元素出现（最多5秒）
+      let attempts = 0;
+      const maxAttempts = 10;
+      while (attempts < maxAttempts) {
+        const userMessages = document.querySelectorAll('[class*="user-query"]');
+        const assistantMessages = document.querySelectorAll('[class*="response-container"], [class*="model-response"]');
+        if (userMessages.length > 0 || assistantMessages.length > 0) {
+          console.log(`[OmniContext] Gemini messages loaded: ${userMessages.length} user, ${assistantMessages.length} assistant`);
+          break;
+        }
+        await this.sleep(500);
+        attempts++;
+      }
+
+      // 额外等待确保内容完全渲染
+      await this.sleep(800);
     } else {
       await this.sleep(1500);
     }
@@ -937,6 +984,9 @@ export class BatchCapture {
     if (this.platform === 'deepseek') {
       return this.deepseekScrollToLoadHistory();
     }
+    if (this.platform === 'gemini') {
+      return this.geminiScrollToLoadHistory();
+    }
     return 0;
   }
 
@@ -947,6 +997,11 @@ export class BatchCapture {
     // Kimi 专用统计
     if (this.platform === 'kimi') {
       return this.countKimiMessages();
+    }
+
+    // Gemini 专用统计
+    if (this.platform === 'gemini') {
+      return this.countGeminiMessages();
     }
 
     const selectors = [
@@ -995,6 +1050,7 @@ export class BatchCapture {
 
       const session: Session = {
         id: sessionId,
+        source: 'platform',
         platform: this.platform,
         title: title || '未命名对话',
         sourceUrl: url,
@@ -2236,6 +2292,161 @@ export class BatchCapture {
     const userMessages = document.querySelectorAll('.chat-content-item-user');
     const assistantMessages = document.querySelectorAll('.chat-content-item-assistant');
     return Math.max(userMessages.length, assistantMessages.length);
+  }
+
+  // ========== Gemini 平台方法 ==========
+
+  private getGeminiSessionListElements(): Element[] {
+    console.log('[OmniContext] === Gemini Session List Debug ===');
+
+    // Gemini 会话列表选择器
+    // 会话项在侧边栏，链接格式为 /app/{sessionId}
+    const sessionItems = document.querySelectorAll('a[href^="/app/"]');
+    console.log(`[OmniContext] Gemini: Found ${sessionItems.length} session items with a[href^="/app/"]`);
+
+    if (sessionItems.length > 0) {
+      sessionItems.forEach((item, i) => {
+        if (i < 5) {
+          console.log(`[OmniContext] Gemini [${i}] class="${item.className}" href="${item.getAttribute('href')}"`);
+        }
+      });
+      return Array.from(sessionItems);
+    }
+
+    // 备用：查找侧边栏中的会话项
+    const sidebarSelectors = [
+      '[class*="conversation-list"]',
+      '[class*="history-list"]',
+      '[class*="session-list"]',
+      'nav a',
+      'aside a',
+    ];
+
+    for (const selector of sidebarSelectors) {
+      const items = document.querySelectorAll(selector);
+      if (items.length > 0) {
+        // 过滤出会话链接
+        const sessionLinks = Array.from(items).filter(el => {
+          const href = el.getAttribute('href') || '';
+          return href.startsWith('/app/') && href.length > 5;
+        });
+        if (sessionLinks.length > 0) {
+          console.log(`[OmniContext] Gemini: Fallback found ${sessionLinks.length} sessions with ${selector}`);
+          return sessionLinks;
+        }
+      }
+    }
+
+    console.warn('[OmniContext] Gemini: No session list found');
+    return [];
+  }
+
+  private getGeminiSessionTitle(element: Element): string {
+    // Gemini 会话标题可能在链接内或子元素中
+    const titleEl = element.querySelector('[class*="title"], [class*="name"], [class*="label"]');
+    if (titleEl?.textContent?.trim()) {
+      return titleEl.textContent.trim();
+    }
+
+    // 备用：使用链接文本
+    const text = element.textContent?.trim() || '';
+    return text.replace(/\s+/g, ' ').slice(0, 50) || '未命名会话';
+  }
+
+  private getGeminiSessionIdFromElement(element: Element): string | null {
+    // Gemini URL 格式: /app/{sessionId}
+    const href = element.getAttribute('href');
+    if (href) {
+      const match = href.match(/\/app\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        console.log(`[OmniContext] Gemini: Extracted session ID: ${match[1]}`);
+        return match[1];
+      }
+    }
+
+    // 尝试 data 属性
+    const dataId = element.getAttribute('data-id') ||
+                   element.getAttribute('data-session-id') ||
+                   element.getAttribute('data-conversation-id');
+    if (dataId) {
+      console.log(`[OmniContext] Gemini: Extracted session ID from data attribute: ${dataId}`);
+      return dataId;
+    }
+
+    // 使用文本内容的 hash 作为 ID
+    const text = element.textContent?.trim() || '';
+    if (text) {
+      return `gemini-${this.simpleHash(text)}`;
+    }
+
+    return null;
+  }
+
+  private countGeminiMessages(): number {
+    // Gemini 消息选择器
+    const userMessages = document.querySelectorAll('[class*="user-query"]');
+    const assistantMessages = document.querySelectorAll('[class*="response-container"], [class*="model-response"]');
+    return Math.max(userMessages.length, assistantMessages.length);
+  }
+
+  private async geminiScrollToLoadHistory(): Promise<number> {
+    // 查找 Gemini 消息区域的根容器
+    const rootSelectors = [
+      'main',
+      '[class*="conversation-container"]',
+      '[class*="chat-container"]',
+      '[data-test-id="conversation-panel"]',
+    ];
+
+    let root: Element | null = null;
+    for (const selector of rootSelectors) {
+      root = document.querySelector(selector);
+      if (root) {
+        console.log(`[OmniContext] Found Gemini message root: ${selector}`);
+        break;
+      }
+    }
+
+    if (!root) {
+      console.warn('[OmniContext] Gemini message container not found');
+      return this.countGeminiMessages();
+    }
+
+    // 查找真正可滚动的容器
+    const container = this.findScrollableContainer(root);
+
+    if (!container) {
+      console.warn('[OmniContext] No scrollable Gemini message container found');
+      return this.countGeminiMessages();
+    }
+
+    console.log(`[OmniContext] Scrolling Gemini message container`);
+
+    // 滚动到顶部加载历史
+    let lastHeight = container.scrollHeight;
+    let noChangeCount = 0;
+    let messageCount = this.countGeminiMessages();
+
+    while (noChangeCount < 3 && !this.isCancelled) {
+      (container as HTMLElement).scrollTop = 0;
+      await this.sleep(500);
+
+      if (this.isCancelled) {
+        console.log('[OmniContext] Gemini scroll cancelled');
+        return messageCount;
+      }
+
+      if (container.scrollHeight === lastHeight) {
+        noChangeCount++;
+      } else {
+        lastHeight = container.scrollHeight;
+        noChangeCount = 0;
+        messageCount = this.countGeminiMessages();
+        console.log(`[OmniContext] Gemini history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+      }
+    }
+
+    return this.countGeminiMessages();
   }
 }
 

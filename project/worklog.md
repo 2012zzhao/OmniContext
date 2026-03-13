@@ -4,6 +4,86 @@
 
 ---
 
+## 开发规范
+
+### 构建部署流程
+
+**重要习惯：** 每完成一次迭代（阶段性开发完成，确保无 bug，非中间阶段），必须运行 `deploy.sh` 构建产物：
+
+```bash
+cd ~/cc-workspace/OmniContext && ./deploy.sh
+```
+
+这样用户可以立即拿到可用的扩展进行测试。
+
+**流程：**
+1. 开发代码
+2. `npm test` 测试通过（确保无 bug）
+3. `./deploy.sh` 构建部署
+4. 产物输出到 Windows 桌面：`C:\Users\73523\Desktop\OmniContext`
+
+**注意：** 只在完整迭代完成后执行，中间开发阶段不需要。
+
+---
+
+## 2026-03-10 Gemini 平台支持开发
+
+**摘要：** 为 OmniContext 添加 Gemini (gemini.google.com) 平台的会话捕获支持
+
+**正文：**
+
+### 实现功能
+1. **单次会话捕获** - 自动检测并捕获当前 Gemini 对话
+2. **批量会话捕获** - 支持一键捕获 Gemini 所有历史会话
+
+### 修改文件
+
+| 文件 | 修改内容 |
+|------|----------|
+| `src/types/index.ts` | Platform 类型添加 'gemini' |
+| `manifest.json` | 添加 gemini.google.com 权限 |
+| `src/utils/extractor.ts` | Gemini 配置、消息提取方法 |
+| `src/content/index.ts` | Gemini sidebar 检测 |
+| `src/content/batch-capture.ts` | Gemini 批量捕获方法 |
+| `src/popup/index.ts` | Gemini 图标、平台名称 |
+| `src/popup/index.html` | 过滤器添加 Gemini 选项 |
+| `icons/platforms/gemini.svg` | Gemini 图标 |
+
+### 技术细节
+
+#### URL 结构
+```
+gemini.google.com/app/{sessionId}
+```
+
+#### 消息选择器
+```typescript
+// 用户消息
+'[class*="user-query-container"]'
+'[class*="user-query"]'
+'[data-test-id="user-query"]'
+
+// AI 回复
+'[class*="response-container"]'
+'[class*="model-response"]'
+'[data-test-id="model-response"]'
+```
+
+#### 批量捕获流程
+1. 滚动侧边栏加载所有会话
+2. 扫描并发现会话列表
+3. 用户选择要捕获的会话
+4. 逐个点击会话链接
+5. 滚动加载历史消息
+6. 提取并保存会话
+
+### 注意事项
+- 不修改任何现有平台的代码（豆包、元宝等）
+- 只添加新的 Gemini 相关功能
+- 保持与其他平台一致的实现模式
+
+---
+
 ## 2026-03-05 API 读写功能架构设计
 
 **摘要：** 完成 API 读写功能的架构设计讨论，确定技术方案

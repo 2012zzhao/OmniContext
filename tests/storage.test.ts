@@ -51,6 +51,7 @@ describe('SessionStorage', () => {
 
   const createTestSession = (id: string, platform: Session['platform'] = 'doubao', messages: Message[] = []): Session => ({
     id,
+    source: 'platform',
     platform,
     title: `Test Session ${id}`,
     sourceUrl: `https://www.doubao.com/chat/${id}`,
@@ -355,6 +356,12 @@ describe('SessionStorage', () => {
     it('should save and retrieve kimi session', async () => {
       await storage.saveSession(createTestSession('kimi-1', 'kimi'));
       const sessions = await storage.getSessionsByPlatform('kimi');
+      expect(sessions).toHaveLength(1);
+    });
+
+    it('should save and retrieve gemini session', async () => {
+      await storage.saveSession(createTestSession('gemini-1', 'gemini'));
+      const sessions = await storage.getSessionsByPlatform('gemini');
       expect(sessions).toHaveLength(1);
     });
   });

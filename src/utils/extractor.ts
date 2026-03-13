@@ -95,6 +95,21 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
       assistant: '.chat-content-item-assistant, .segment-assistant',
     },
   },
+  gemini: {
+    hostname: 'gemini.google.com',
+    titleSelectors: [
+      '[class*="conversation-title"]',
+      '[class*="chat-title"]',
+      '[data-test-id="conversation-title"]',
+      // 注意：不使用 h1 和 title，因为它们会匹配 "Google Gemini" 页面标题
+    ],
+    messageSelectors: {
+      // Gemini uses Material Design components
+      container: 'main, [class*="conversation-container"], [class*="chat-container"], [data-test-id="conversation-panel"]',
+      user: '[class*="user-query"], [class*="user-message"], [data-test-id="user-query"]',
+      assistant: '[class*="response-container"], [class*="model-response"], [data-test-id="model-response"]',
+    },
+  },
 };
 
 export function detectPlatform(url: string): Platform | null {
@@ -105,6 +120,7 @@ export function detectPlatform(url: string): Platform | null {
   if (hostname.includes('claude.ai')) return 'claude';
   if (hostname.includes('deepseek.com')) return 'deepseek';
   if (hostname.includes('kimi.com')) return 'kimi';
+  if (hostname.includes('gemini.google.com')) return 'gemini';
 
   return null;
 }
@@ -165,6 +181,17 @@ export function extractSessionId(url: string, platform: Platform): string {
     const chatIndex = pathParts.indexOf('chat');
     if (chatIndex !== -1 && chatIndex + 1 < pathParts.length) {
       const sessionId = pathParts[chatIndex + 1];
+      if (sessionId && sessionId.length >= 4) {
+        return sessionId;
+      }
+    }
+  }
+
+  // Gemini: URL format is /app/{sessionId}
+  if (platform === 'gemini') {
+    const appIndex = pathParts.indexOf('app');
+    if (appIndex !== -1 && appIndex + 1 < pathParts.length) {
+      const sessionId = pathParts[appIndex + 1];
       if (sessionId && sessionId.length >= 4) {
         return sessionId;
       }
@@ -275,6 +302,7 @@ export function formatPlatformName(platform: Platform): string {
     claude: 'Claude',
     deepseek: 'DeepSeek',
     kimi: 'Kimi',
+    gemini: 'Gemini',
   };
   return names[platform];
 }
@@ -331,6 +359,10 @@ class PlatformMessageExtractor implements MessageExtractor {
 
     if (this.platform === 'kimi') {
       return this.extractKimiMessages();
+    }
+
+    if (this.platform === 'gemini') {
+      return this.extractGeminiMessages();
     }
 
     const messages: Message[] = [];
@@ -996,20 +1028,30 @@ class PlatformMessageExtractor implements MessageExtractor {
 
       console.log(`[OmniContext] [${index}] class="${className.slice(0, 50)}" text="${fullText.slice(0, 50)}..."`);
 
-      // 判断是否为用户消息
+      // 改进的检测逻辑：先检测助手消息（特征更明显），再检测用户消息
+      // 1. 助手消息特征
       const hasThinkingContent = !!msgEl.querySelector('[class*="ds-think-content"], [class*="think"], [class*="reasoning"]');
-      const hasUserClass = className.includes('d29f3d7d') ||
-                          className.includes('user') ||
-                          className.includes('human') ||
-                          className.includes('me') ||
-                          msgEl.hasAttribute('data-user');
+      const hasCodeBlock = !!msgEl.querySelector('pre, code, [class*="code"]');
+      const isLongResponse = fullText.length > 300;
+      const hasAssistantMarkers = fullText.includes('好的') ||
+                                   fullText.includes('以下') ||
+                                   fullText.includes('我来') ||
+                                   fullText.includes('首先') ||
+                                   fullText.includes('```');
 
-      // 简单的交替判断（如果没有明确的用户标识）
-      // 用户消息通常较短
-      const isShortMessage = fullText.length < 200;
-      const isLikelyUser = hasUserClass || (isShortMessage && index % 2 === 0);
+      // 2. 用户消息特征（更精确的匹配）
+      const hasSpecificUserClass = className.includes('d29f3d7d') ||
+                                    className.includes('ds-chat-message--user') ||
+                                    className.includes('ds-message--user');
+      const isShortPrompt = fullText.length < 100 && !hasCodeBlock;
 
-      const isUserMessage = isLikelyUser && !hasThinkingContent;
+      // 3. 综合判断
+      const isAssistantMessage = hasThinkingContent ||
+                                  (hasCodeBlock && !hasSpecificUserClass) ||
+                                  (isLongResponse && hasAssistantMarkers);
+
+      const isUserMessage = hasSpecificUserClass ||
+                            (isShortPrompt && !isAssistantMessage && !hasAssistantMarkers);
 
       if (isUserMessage) {
         const content = this.extractDeepseekUserContent(msgEl);
@@ -1337,6 +1379,172 @@ class PlatformMessageExtractor implements MessageExtractor {
     });
 
     console.log(`[OmniContext] Kimi fallback: Extracted ${messages.length} messages`);
+    return messages;
+  }
+
+  // ========== Gemini 平台消息提取 ==========
+
+  private extractGeminiMessages(): Message[] {
+    const messages: Message[] = [];
+
+    console.log('[OmniContext] Extracting Gemini messages...');
+
+    // Gemini uses Material Design, user messages and AI responses are clearly distinguished
+    // User: user-query-container or elements containing user-query
+    // AI: response-container or elements containing model-response
+
+    const userSelectors = [
+      '[class*="user-query-container"]',
+      '[class*="user-query"]',
+      '[data-test-id="user-query"]',
+      '.user-query-container',
+    ];
+
+    const assistantSelectors = [
+      '[class*="response-container"]',
+      '[class*="model-response"]',
+      '[data-test-id="model-response"]',
+      '.response-container',
+    ];
+
+    // Collect all message elements (deduplicate by element reference first)
+    const seenElements = new Set<Element>();
+    const allElements: Array<{ el: Element; isUser: boolean }> = [];
+
+    for (const selector of userSelectors) {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (!seenElements.has(el)) {
+          seenElements.add(el);
+          allElements.push({ el, isUser: true });
+        }
+      });
+    }
+
+    for (const selector of assistantSelectors) {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (!seenElements.has(el)) {
+          seenElements.add(el);
+          allElements.push({ el, isUser: false });
+        }
+      });
+    }
+
+    console.log(`[OmniContext] Gemini: Found ${allElements.filter(e => e.isUser).length} user elements, ${allElements.filter(e => !e.isUser).length} assistant elements`);
+
+    if (allElements.length === 0) {
+      return this.extractGeminiFromDocument();
+    }
+
+    // Sort by DOM position
+    allElements.sort((a, b) => {
+      const position = a.el.compareDocumentPosition(b.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+
+    allElements.forEach(({ el, isUser }, index) => {
+      const content = this.extractGeminiContent(el, isUser);
+      if (content && content.length >= 2) {
+        messages.push({
+          id: `gemini-msg-${index}`,
+          role: isUser ? 'user' : 'assistant',
+          content,
+          timestamp: Date.now(),
+        });
+        console.log(`[OmniContext] Gemini [${index}] ${isUser ? 'USER' : 'ASSISTANT'}: "${content.slice(0, 50)}..."`);
+      }
+    });
+
+    // Content-based deduplication: nested DOM elements may have the same content
+    const dedupedMessages: Message[] = [];
+    const seenContent = new Set<string>();
+    for (const msg of messages) {
+      const key = `${msg.role}:${msg.content}`;
+      if (!seenContent.has(key)) {
+        seenContent.add(key);
+        dedupedMessages.push(msg);
+      }
+    }
+    console.log(`[OmniContext] Gemini: After dedup: ${dedupedMessages.length} messages (removed ${messages.length - dedupedMessages.length} duplicates)`);
+
+    if (dedupedMessages.length === 0) {
+      return this.extractGeminiFromDocument();
+    }
+
+    return dedupedMessages;
+  }
+
+  private extractGeminiContent(element: Element, isUser: boolean): string {
+    if (isUser) {
+      // User message: usually in message-content or direct text
+      const contentEl = element.querySelector('[class*="message-content"], [class*="query-content"], .query-text');
+      if (contentEl?.textContent?.trim()) {
+        return contentEl.textContent.trim();
+      }
+    } else {
+      // AI response: may be in multiple areas, need to exclude tool calls etc.
+      const mainContent = element.querySelector('[class*="response-text"], [class*="model-response-text"], [class*="message-content"]');
+      if (mainContent?.textContent?.trim()) {
+        return mainContent.textContent.trim();
+      }
+    }
+
+    // Fallback: use element text directly
+    const text = element.textContent?.trim() || '';
+    return text;
+  }
+
+  private extractGeminiFromDocument(): Message[] {
+    const messages: Message[] = [];
+
+    console.log('[OmniContext] Gemini: Trying fallback extraction...');
+
+    // Find main conversation area
+    const mainContainer = document.querySelector('main, [class*="conversation"], [class*="chat-container"], [data-test-id="conversation-panel"]');
+    if (!mainContainer) {
+      console.warn('[OmniContext] Gemini: No message container found');
+      return messages;
+    }
+
+    // Try to infer messages from DOM structure
+    const messageBlocks = mainContainer.querySelectorAll('[class*="container"], [class*="message"], [class*="query"], [class*="response"]');
+    console.log(`[OmniContext] Gemini fallback: Found ${messageBlocks.length} potential message blocks`);
+
+    // Analyze each block's text length and structure
+    const candidates: Array<{ el: Element; isUser: boolean; text: string }> = [];
+
+    messageBlocks.forEach(block => {
+      const text = block.textContent?.trim() || '';
+      const className = block.className || '';
+
+      // Skip too short or too long blocks
+      if (text.length < 2 || text.length > 50000) return;
+
+      // Determine if user message
+      const isUser = className.toLowerCase().includes('user') ||
+                     className.toLowerCase().includes('query') ||
+                     className.toLowerCase().includes('human');
+
+      candidates.push({ el: block, isUser, text });
+    });
+
+    // Sort by position and extract, with simple deduplication
+    const seenText = new Set<string>();
+    candidates.forEach((candidate, index) => {
+      // Skip if same content as previous
+      if (seenText.has(candidate.text)) return;
+      seenText.add(candidate.text);
+
+      messages.push({
+        id: `gemini-fallback-${index}`,
+        role: candidate.isUser ? 'user' : 'assistant',
+        content: candidate.text.slice(0, 10000),
+        timestamp: Date.now(),
+      });
+    });
+
+    console.log(`[OmniContext] Gemini fallback: Extracted ${messages.length} messages`);
     return messages;
   }
 

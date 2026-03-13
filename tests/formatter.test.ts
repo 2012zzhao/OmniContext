@@ -37,6 +37,7 @@ describe('formatter', () => {
   describe('formatSessionForInjection', () => {
     const mockSession: Session = {
       id: 'test-1',
+      source: 'platform',
       platform: 'doubao' as Platform,
       title: 'Java学习路线',
       sourceUrl: 'https://www.doubao.com/chat/123',

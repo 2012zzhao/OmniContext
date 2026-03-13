@@ -17,7 +17,7 @@ body {
 }
 
 #app {
-  width: 360px;
+  width: 100%;
   min-height: 520px;
   background: #fff;
   display: flex;
@@ -48,6 +48,64 @@ body {
 .current-page {
   font-size: 12px;
   opacity: 0.9;
+}
+
+/* Server Status Indicator */
+.server-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.server-status:hover {
+  opacity: 0.7;
+}
+
+.server-status.server-online {
+  color: #4ade80;
+  text-shadow: 0 0 4px rgba(74, 222, 128, 0.5);
+}
+
+.server-status.server-partial {
+  color: #fbbf24;
+  text-shadow: 0 0 4px rgba(251, 191, 36, 0.5);
+}
+
+.server-status.server-offline {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Server Status Indicator */
+.server-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.server-status:hover {
+  transform: scale(1.2);
+}
+
+.server-online {
+  color: #22c55e;
+}
+
+.server-partial {
+  color: #f59e0b;
+}
+
+.server-offline {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.header {
+  position: relative;
 }
 
 /* Search Container */

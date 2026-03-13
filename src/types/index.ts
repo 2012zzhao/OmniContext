@@ -1,5 +1,8 @@
 // 支持的平台
-export type Platform = 'doubao' | 'yuanbao' | 'claude' | 'deepseek' | 'kimi';
+export type Platform = 'doubao' | 'yuanbao' | 'claude' | 'deepseek' | 'kimi' | 'gemini';
+
+// 数据来源类型
+export type Source = 'platform' | 'api';
 
 // 消息
 export interface Message {
@@ -12,13 +15,16 @@ export interface Message {
 // Session
 export interface Session {
   id: string;
-  platform: Platform;
+  source: Source;              // 数据来源：platform(网页捕获) 或 api(API写入)
+  platform?: Platform;         // 仅 source=platform 时有值
   title: string;
-  sourceUrl: string;
+  sourceUrl?: string;          // 仅 source=platform 时有值
   createdAt: number;
   updatedAt: number;
   messages: Message[];
   messageCount: number;
+  tags?: string[];
+  metadata?: Record<string, any>; // API 写入可自定义扩展字段
 }
 
 // 注入配置

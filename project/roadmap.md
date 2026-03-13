@@ -4,6 +4,148 @@
 
 ---
 
+## 2026-03-06 Phase 4 性能优化
+
+**摘要：** 完成核心性能优化，Rust 重构和其他扩展留待后续
+
+**正文：**
+
+### 已完成 ✅
+- [x] SQLite 连接池优化
+  - 使用线程本地存储管理连接
+  - WAL 模式提升并发性能
+  - PRAGMA 优化（cache_size, temp_store）
+- [x] 数据库索引优化
+  - 添加 message_count 列避免遍历解析 JSON
+  - 添加复合索引用于常用查询
+- [x] FTS5 全文搜索
+  - 添加 sessions_fts 虚拟表
+  - 添加 memories_fts 虚拟表
+  - 搜索接口使用 FTS 替代 LIKE
+- [x] API 层优化
+  - 统计接口使用 message_count 列
+  - 搜索结果按相关度排序
+
+### 留待后续 📋
+- [ ] Rust 重构
+  - 使用 Axum 替代 FastAPI
+  - 提升安全性和性能
+  - 减少依赖和部署复杂度
+- [ ] 向量嵌入优化
+  - 支持语义检索
+  - 替代关键词搜索
+- [ ] 缓存层
+  - 热点数据内存缓存
+  - LRU 淘汰策略
+- [ ] Chrome 扩展性能优化
+  - 虚拟列表渲染大量会话
+  - WebWorker 处理大数据
+
+### 技术细节
+**FTS5 全文搜索配置：**
+```sql
+CREATE VIRTUAL TABLE sessions_fts USING fts5(
+    id, title, messages,
+    content=''
+)
+```
+
+**连接池配置：**
+```python
+conn.execute("PRAGMA journal_mode=WAL")
+conn.execute("PRAGMA synchronous=NORMAL")
+conn.execute("PRAGMA cache_size=10000")
+conn.execute("PRAGMA temp_store=MEMORY")
+```
+
+---
+
+## 2026-03-06 Phase 3 Python SDK 完成
+
+**摘要：** Python SDK 开发完成，17 个测试全部通过
+
+**正文：**
+
+### 已完成 ✅
+- [x] SDK 核心功能
+  - Client 类封装 HTTP API
+  - Session/Memory/Message 数据模型
+  - 错误处理和连接检查
+- [x] 便捷方法
+  - 别名方法：search, get, list, write, delete
+  - 链式调用支持
+- [x] 单元测试
+  - 17 个测试用例
+  - 使用 mock 避免依赖服务器
+- [x] 示例代码
+  - examples/basic_usage.py
+  - 完整的 CRUD 演示
+
+### SDK 功能列表
+| 方法 | 描述 |
+|------|------|
+| get_sessions() | 获取会话列表 |
+| get_session(id) | 获取单个会话 |
+| write_session() | 创建会话 |
+| append_messages() | 追加消息 |
+| delete_session() | 删除会话 |
+| search_sessions() | 搜索会话 |
+| write_memory() | 写入记忆 |
+| search_memories() | 搜索记忆 |
+| get_stats() | 获取统计 |
+| is_connected() | 检查连接 |
+
+### 文件结构
+```
+sdk/python/
+├── omnicontext/
+│   ├── __init__.py
+│   ├── client.py
+│   └── models.py
+├── tests/
+│   └── test_client.py
+├── examples/
+│   └── basic_usage.py
+├── README.md
+├── setup.py
+└── pytest.ini
+```
+
+---
+
+## 2026-03-06 Phase 2 Chrome 扩展集成完成
+
+**摘要：** Native Messaging 集成完成，扩展数据可同步到本地服务
+
+**正文：**
+
+### 已完成 ✅
+- [x] 类型更新
+  - Session 添加 source 字段（'platform' | 'api'）
+  - 区分网页捕获和 API 写入数据
+- [x] Native Messaging 配置
+  - native/native_host.py - Native Host 脚本
+  - native/install.py - 安装脚本
+  - native/omnicontext_host.json - Manifest 模板
+- [x] Chrome 扩展更新
+  - manifest.json 添加 nativeMessaging 权限
+  - background/index.ts 添加 Native Messaging 通信
+  - popup/index.ts 添加服务器状态指示器
+- [x] 数据同步
+  - 网页捕获自动同步到本地服务器
+  - Popup 可从服务器读取数据
+
+### 文件变更
+| 文件 | 变更 |
+|------|------|
+| src/types/index.ts | 添加 Source 类型 |
+| src/background/index.ts | 添加 Native Messaging |
+| src/popup/index.ts | 服务器状态指示 |
+| manifest.json | nativeMessaging 权限 |
+| native/*.py | 新增目录 |
+
+---
+
 ## 2026-03-05 Phase 2 新增：API 读写功能
 
 **摘要：** 新增 API 读写能力，让用户程序和 Agent 也能读写 memory
