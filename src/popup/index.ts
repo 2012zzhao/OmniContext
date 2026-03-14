@@ -28,6 +28,7 @@ function getPlatformIcon(platform: Platform, options: IconOptions = {}): string 
     claude: chrome.runtime.getURL('icons/platforms/claude.svg'),
     deepseek: chrome.runtime.getURL('icons/platforms/deepseek.svg'),
     kimi: chrome.runtime.getURL('icons/platforms/kimi.svg'),
+    chatgpt: chrome.runtime.getURL('icons/platforms/chatgpt.svg'),
   };
   const style = extraStyle ? ` style="${extraStyle}"` : '';
   return `<img class="${className} ${platform}" src="${iconUrls[platform]}" width="${size}" height="${size}" alt="${formatPlatformName(platform)}"${style}>`;
@@ -39,6 +40,7 @@ const PLATFORM_ICONS: Record<Platform, string> = {
   claude: getPlatformIcon('claude'),
   deepseek: getPlatformIcon('deepseek'),
   kimi: getPlatformIcon('kimi'),
+  chatgpt: getPlatformIcon('chatgpt'),
 };
 
 // DOM Elements
@@ -1069,11 +1071,12 @@ async function handleBatchCaptureStart() {
   // Check if already running locally
   if (isBatchCapturing) {
     const platformNames: Record<Platform, string> = {
-          doubao: '豆包',
+      doubao: '豆包',
       yuanbao: '元宝',
       claude: 'Claude',
       deepseek: 'DeepSeek',
       kimi: 'Kimi',
+      chatgpt: 'ChatGPT',
     };
     showToast(`正在批量捕获 ${platformNames[currentPlatform] || currentPlatform} 的会话`);
     return;
@@ -1216,6 +1219,7 @@ function updateBatchCaptureProgress(progress: {
         claude: 'Claude',
         deepseek: 'DeepSeek',
         kimi: 'Kimi',
+        chatgpt: 'ChatGPT',
       };
       batchScanningPlatform.textContent = platformNames[currentPlatform] || currentPlatform;
     }

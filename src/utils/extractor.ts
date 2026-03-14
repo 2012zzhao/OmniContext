@@ -95,6 +95,23 @@ const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
       assistant: '.chat-content-item-assistant, .segment-assistant',
     },
   },
+  chatgpt: {
+    hostname: 'chatgpt.com',
+    titleSelectors: [
+      'title',
+      '[class*="conversation-title"]',
+      '[class*="chat-title"]',
+      '[data-testid="conversation-title"]',
+      'h1',
+    ],
+    messageSelectors: {
+      // ChatGPT uses data-testid with conversation-turn pattern
+      // Even indexed turns are user messages, odd are assistant
+      container: '[data-testid^="conversation-turn-"], [class*="ThreadLayout__NodeWrapper"]',
+      user: '[data-message-author-role="user"]',
+      assistant: '[data-message-author-role="assistant"]',
+    },
+  },
 };
 
 export function detectPlatform(url: string): Platform | null {
@@ -105,6 +122,7 @@ export function detectPlatform(url: string): Platform | null {
   if (hostname.includes('claude.ai')) return 'claude';
   if (hostname.includes('deepseek.com')) return 'deepseek';
   if (hostname.includes('kimi.com')) return 'kimi';
+  if (hostname.includes('chatgpt.com') || hostname.includes('chat.openai.com')) return 'chatgpt';
 
   return null;
 }
@@ -167,6 +185,23 @@ export function extractSessionId(url: string, platform: Platform): string {
       const sessionId = pathParts[chatIndex + 1];
       if (sessionId && sessionId.length >= 4) {
         return sessionId;
+      }
+    }
+  }
+
+  // ChatGPT: URL format is /c/{sessionId}
+  if (platform === 'chatgpt') {
+    const cIndex = pathParts.indexOf('c');
+    if (cIndex !== -1 && cIndex + 1 < pathParts.length) {
+      const sessionId = pathParts[cIndex + 1];
+      if (sessionId && sessionId.length >= 4) {
+        return sessionId;
+      }
+    }
+    // Fallback: any UUID-like segment
+    for (const part of pathParts) {
+      if (part && part.length >= 8 && /^[a-zA-Z0-9_-]+$/.test(part)) {
+        return part;
       }
     }
   }
@@ -275,6 +310,7 @@ export function formatPlatformName(platform: Platform): string {
     claude: 'Claude',
     deepseek: 'DeepSeek',
     kimi: 'Kimi',
+    chatgpt: 'ChatGPT',
   };
   return names[platform];
 }
@@ -331,6 +367,10 @@ class PlatformMessageExtractor implements MessageExtractor {
 
     if (this.platform === 'kimi') {
       return this.extractKimiMessages();
+    }
+
+    if (this.platform === 'chatgpt') {
+      return this.extractChatgptMessages();
     }
 
     const messages: Message[] = [];
@@ -1337,6 +1377,220 @@ class PlatformMessageExtractor implements MessageExtractor {
     });
 
     console.log(`[OmniContext] Kimi fallback: Extracted ${messages.length} messages`);
+    return messages;
+  }
+
+  // ========== ChatGPT 平台消息提取 ==========
+
+  private extractChatgptMessages(): Message[] {
+    const messages: Message[] = [];
+
+    console.log('[OmniContext] Extracting ChatGPT messages...');
+
+    // ChatGPT uses data-testid="conversation-turn-{index}" for each turn
+    // Even indices (0, 2, 4...) are user messages
+    // Odd indices (1, 3, 5...) are assistant messages
+    // For newer ChatGPT interface, use data-message-author-role attribute
+
+    // Try data-message-author-role approach first (more reliable)
+    const userElements = document.querySelectorAll('[data-message-author-role="user"]');
+    const assistantElements = document.querySelectorAll('[data-message-author-role="assistant"]');
+
+    if (userElements.length > 0 || assistantElements.length > 0) {
+      console.log(`[OmniContext] ChatGPT: Found ${userElements.length} user, ${assistantElements.length} assistant messages via data-message-author-role`);
+
+      // Merge and sort by DOM order
+      const allElements: Array<{ el: Element; isUser: boolean }> = [
+        ...Array.from(userElements).map(el => ({ el, isUser: true })),
+        ...Array.from(assistantElements).map(el => ({ el, isUser: false })),
+      ];
+
+      // Sort by document position
+      allElements.sort((a, b) => {
+        const position = a.el.compareDocumentPosition(b.el);
+        return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+      });
+
+      allElements.forEach(({ el, isUser }, index) => {
+        const content = isUser ? this.extractChatgptUserContent(el) : this.extractChatgptAssistantContent(el);
+        if (content && content.length >= 1) {
+          messages.push({
+            id: `chatgpt-msg-${index}`,
+            role: isUser ? 'user' : 'assistant',
+            content,
+            timestamp: Date.now(),
+          });
+          console.log(`[OmniContext] ChatGPT [${index}] ${isUser ? 'USER' : 'ASSISTANT'}: "${content.slice(0, 50)}..."`);
+        }
+      });
+    }
+
+    // Fallback: try conversation-turn data-testid
+    if (messages.length === 0) {
+      return this.extractChatgptFromTurnElements();
+    }
+
+    console.log(`[OmniContext] ChatGPT: Extracted ${messages.length} messages`);
+    return messages;
+  }
+
+  private extractChatgptFromTurnElements(): Message[] {
+    const messages: Message[] = [];
+
+    // Find all conversation turns using data-testid
+    const turns = document.querySelectorAll('[data-testid^="conversation-turn-"]');
+    console.log(`[OmniContext] ChatGPT fallback: Found ${turns.length} conversation turns`);
+
+    if (turns.length === 0) {
+      // Try legacy selectors
+      return this.extractChatgptFromLegacySelectors();
+    }
+
+    turns.forEach((turn, index) => {
+      // Even turns are user, odd turns are assistant (based on data-testid index)
+      const isUser = index % 2 === 0;
+
+      // Find the message content
+      const messageContent = turn.querySelector('.markdown, [class*="markdown"], [class*="message-content"], .text-message');
+      if (messageContent?.textContent?.trim()) {
+        const content = this.cleanChatgptContent(messageContent.textContent.trim());
+        if (content.length >= 1) {
+          messages.push({
+            id: `chatgpt-turn-${index}`,
+            role: isUser ? 'user' : 'assistant',
+            content,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    });
+
+    console.log(`[OmniContext] ChatGPT turn fallback: Extracted ${messages.length} messages`);
+    return messages;
+  }
+
+  private extractChatgptUserContent(element: Element): string {
+    // User content is usually in a simpler structure
+    // Try to find the actual user message content
+    const contentSelectors = [
+      '[class*="markdown"]',
+      '[class*="message-content"]',
+      '.text-message',
+      'p',
+      'div',
+    ];
+
+    for (const selector of contentSelectors) {
+      const contentEl = element.querySelector(selector);
+      if (contentEl?.textContent?.trim()) {
+        return this.cleanChatgptContent(contentEl.textContent.trim());
+      }
+    }
+
+    // Fallback: use element's own text
+    return this.cleanChatgptContent(element.textContent?.trim() || '');
+  }
+
+  private extractChatgptAssistantContent(element: Element): string {
+    // Clone element to avoid modifying the original
+    const clone = element.cloneNode(true) as Element;
+
+    // Remove reasoning/thinking content (for o1/o3 models)
+    const reasoningSelectors = [
+      '[class*="reasoning"]',
+      '[class*="thinking"]',
+      '[data-testid*="reasoning"]',
+      '[class*="o1-reasoning"]',
+    ];
+
+    reasoningSelectors.forEach(selector => {
+      const reasoningEls = clone.querySelectorAll(selector);
+      reasoningEls.forEach(el => el.remove());
+    });
+
+    // Remove UI elements
+    const uiSelectors = [
+      'button', // Copy, Regenerate, etc.
+      '[role="button"]',
+      '[class*="feedback"]',
+      '[class*="action"]',
+      '[class*="toolbar"]',
+      '[class*="copy-button"]',
+    ];
+
+    uiSelectors.forEach(selector => {
+      const uiEls = clone.querySelectorAll(selector);
+      uiEls.forEach(el => el.remove());
+    });
+
+    // Extract text content
+    const contentSelectors = [
+      '[class*="markdown"]',
+      '[class*="message-content"]',
+      '.text-message',
+    ];
+
+    for (const selector of contentSelectors) {
+      const contentEl = clone.querySelector(selector);
+      if (contentEl?.textContent?.trim()) {
+        return this.cleanChatgptContent(contentEl.textContent.trim());
+      }
+    }
+
+    // Fallback: use clone's text content
+    return this.cleanChatgptContent(clone.textContent?.trim() || '');
+  }
+
+  private cleanChatgptContent(content: string): string {
+    // Remove UI-related text
+    const uiTexts = [
+      'Copy',
+      'Copied!',
+      'Regenerate',
+      'Edit',
+      'Delete',
+      'Like',
+      'Dislike',
+      'Report',
+      'Read aloud',
+      'Share',
+      'Voice input',
+      'Stop generating',
+      'Continue generating',
+    ];
+
+    let cleaned = content;
+    uiTexts.forEach(text => {
+      // Only remove if it's at the start or end of the content (likely UI)
+      const regex = new RegExp(`^(\\s*${text}\\s*|\\s*${text}\\s*)$`, 'gi');
+      cleaned = cleaned.replace(regex, '');
+    });
+
+    return cleaned.trim();
+  }
+
+  private extractChatgptFromLegacySelectors(): Message[] {
+    const messages: Message[] = [];
+
+    console.log('[OmniContext] ChatGPT: Trying legacy selectors...');
+
+    // Legacy ThreadLayout selectors
+    const nodeWrappers = document.querySelectorAll('[class*="ThreadLayout__NodeWrapper"]');
+    if (nodeWrappers.length > 0) {
+      nodeWrappers.forEach((node, index) => {
+        const isUser = node.querySelector('[class*="ConversationItem__User"]') !== null;
+        const contentEl = node.querySelector('[class*="ConversationItem__Body"]');
+        if (contentEl?.textContent?.trim()) {
+          messages.push({
+            id: `chatgpt-legacy-${index}`,
+            role: isUser ? 'user' : 'assistant',
+            content: this.cleanChatgptContent(contentEl.textContent.trim()),
+            timestamp: Date.now(),
+          });
+        }
+      });
+    }
+
     return messages;
   }
 
