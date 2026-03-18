@@ -17,6 +17,7 @@ let lastSavedMessages: Message[] = [];
 let pendingSave: number | null = null;
 let saveTimeout: number | null = null;
 let observer: MutationObserver | null = null;
+let isAutoCaptureEnabled = false;  // 自动捕获开关状态
 
 // Check if extension context is still valid
 function isExtensionContextValid(): boolean {
@@ -408,7 +409,7 @@ async function doSave(messages: Message[]) {
     const session: Session = {
       id: currentSessionId,
       source: 'platform',
-      platform: currentPlatform,
+      platform: currentPlatform?.toLowerCase() as Platform,
       title: title || '未命名对话',
       sourceUrl: window.location.href,
       createdAt: now,
@@ -496,6 +497,25 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({
       isRunning: isBatchCaptureRunning(),
       progress: getBatchCaptureProgress()
+    });
+    return true;
+  }
+
+  // 处理自动捕获开关
+  if (message.type === 'AUTO_CAPTURE_TOGGLE') {
+    isAutoCaptureEnabled = message.enabled as boolean;
+    console.log('[OmniContext] Auto capture toggled:', isAutoCaptureEnabled);
+    sendResponse({ success: true, enabled: isAutoCaptureEnabled });
+    return true;
+  }
+
+  // 查询自动捕获状态
+  if (message.type === 'AUTO_CAPTURE_STATUS') {
+    sendResponse({
+      enabled: isAutoCaptureEnabled,
+      hasPlatform: !!currentPlatform,
+      hasSessionId: !!currentSessionId,
+      isConnected: isAutoCaptureEnabled && !!currentPlatform && !!currentSessionId
     });
     return true;
   }

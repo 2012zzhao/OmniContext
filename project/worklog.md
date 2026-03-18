@@ -4,6 +4,139 @@
 
 ---
 
+## 2026-03-18 ChatGPT显示名称修复（第三轮 - 数据规范化）
+
+**摘要：** 修复会话列表中ChatGPT会话仍然分组在 "CHATGPT" 下的问题
+
+**正文：**
+
+### 问题
+前两轮修复只解决了**显示**问题，但没有解决**分组**问题：
+- 历史数据 platform = 'CHATGPT'（全大写）
+- 新数据 platform = 'chatgpt'（全小写）
+- JavaScript 分组时视为不同键，导致分成两个组
+
+### 修复方案
+在数据加载时统一规范化 platform 值为小写。
+
+**修改文件 1：`src/popup/index.ts`**
+在 `loadSessions()` 函数中，所有数据加载完成后添加：
+```typescript
+// 规范化 platform 值（统一转为小写，解决历史数据大小写不一致问题）
+sessions = sessions.map(s => ({
+  ...s,
+  platform: (s.platform?.toLowerCase() as Platform) || 'unknown'
+}));
+```
+
+**修改文件 2：`src/content/index.ts`**
+保存会话时确保 platform 值为小写：
+```typescript
+platform: currentPlatform?.toLowerCase() as Platform,
+```
+
+### 结果
+- 所有 ChatGPT 会话统一显示在一个 "ChatGPT" 分组下
+- 新保存的数据自动使用小写的 platform 值
+
+---
+
+## 2026-03-17 ChatGPT显示名称修复（完整版）
+
+**摘要：** 修复会话列表中ChatGPT平台显示为CHATGPT的问题
+
+**正文：**
+
+### 问题
+- 会话列表中ChatGPT平台显示为全大写 "CHATGPT" 而非 "ChatGPT"
+- 根本原因是历史数据中平台值存储为大写 'CHATGPT'
+
+### 第一轮修复
+- 修改 `src/utils/extractor.ts` 中的 `formatPlatformName` 函数：
+  - 支持字符串类型输入（兼容大小写混用）
+  - 使用 `toLowerCase()` 规范化平台值
+  - 添加默认值回退
+
+### 第二轮修复（关键）
+发现 `src/popup/index.ts` 中有多处直接内联平台名称映射，未使用 `formatPlatformName`：
+
+1. **第1155-1164行** - 批量捕获状态检查
+2. **第1172-1178行** - 全局锁检查提示
+3. **第1299-1308行** - 批量扫描平台名称显示
+
+**修改内容：**
+- 将内联的 `platformNames[platform] || platform` 改为统一调用 `formatPlatformName(platform)`
+- 确保所有显示平台名称的地方都经过大小写规范化处理
+
+### 结果
+- 无论数据存储的是 'CHATGPT'、'chatgpt' 还是 'ChatGPT'，显示均为 "ChatGPT"
+
+---
+
+## 2026-03-17 UI风格优化：iOS中浮雕风格
+
+**摘要：** 将UI从Material Design风格优化为中浮雕iOS风格，仅修改CSS，保持DOM结构不变
+
+**正文：**
+
+### 设计系统更新
+
+#### 色彩系统
+- `--canvas-bg: #f3f3f5` - 柔和灰背景
+- `--surface-bg: #ffffff` - 卡片纯白表面
+- `--text-primary: #1c1c1e` - 近黑色主文字
+- `--text-secondary: #8e8e93` - 中灰次要文字
+- `--accent-copper: #c87a38` - 古铜色强调
+
+#### 圆角系统
+- `--radius-card: 16px` - 卡片圆角
+- `--radius-pill: 999px` - 药丸按钮
+- `--radius-inner: 10px` - 内部元素
+
+#### 阴影系统
+- `--shadow-base: 0 10px 30px -8px rgba(0,0,0,0.12)` - 基础阴影
+- `--shadow-hover: 0 16px 40px -10px rgba(0,0,0,0.15)` - 悬停阴影
+- `--shadow-float: 0 24px 48px -12px rgba(0,0,0,0.2)` - 悬浮阴影
+
+### 关键样式变更
+
+#### Header
+- 移除紫色渐变背景
+- 改为透明背景 + 深色文字
+
+#### 搜索栏
+- 药丸形状（pill）圆角
+- 添加精致阴影
+
+#### 会话卡片
+- 圆角16px
+- 添加iOS风格阴影
+- 悬停时阴影增强
+
+#### 按钮
+- 全部改为药丸形状
+- 主按钮：深色背景
+- 次按钮：白色+阴影
+
+#### 标签
+- 毛玻璃效果（backdrop-filter blur）
+- 深色半透明背景
+
+#### 对话框
+- 更大圆角（16px）
+- 更强悬浮阴影
+- 背景添加模糊效果
+
+### 文件变更
+- **仅修改**: `src/popup/style.css`
+- **未修改**: `src/popup/index.html`（DOM结构完全保持）
+
+### 验证结果
+- 构建成功
+- 已部署到 product 目录
+
+---
+
 ## 2026-03-16 豆包自动捕获问题修复
 
 **摘要：** 修复豆包平台自动捕获失效问题，增强DOM选择器健壮性

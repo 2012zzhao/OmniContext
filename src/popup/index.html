@@ -10,13 +10,39 @@
   <div id="app">
     <header class="header">
       <h1>🧠 OmniContext</h1>
-      <span id="current-page" class="current-page">检测中...</span>
       <span id="server-status" class="server-status" title="本地服务器状态">○</span>
     </header>
 
-    <!-- Batch Capture Section -->
-    <div id="batch-capture-section" class="batch-capture-section" style="display: none;">
-      <button id="batch-capture-btn" class="btn btn-batch">📦 批量捕获当前平台所有会话</button>
+    <!-- Current Assistant Card -->
+    <div id="current-assistant-card" class="active-context-card" style="display: none;">
+      <div class="context-header">
+        <div id="assistant-platform-thumb" class="platform-thumb">
+          <img id="assistant-platform-icon" src="" alt="" width="18" height="18">
+        </div>
+        <div class="platform-info">
+          <div id="assistant-platform-name" class="platform-name">-</div>
+          <div>
+            <span id="assistant-status-dot" class="status-dot"></span>
+            <span id="assistant-status-text" class="status-text">未连接</span>
+          </div>
+        </div>
+      </div>
+      <div class="assistant-actions">
+        <button id="batch-capture-btn" class="btn btn-assistant-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          批量捕获
+        </button>
+        <button id="auto-capture-btn" class="btn btn-assistant-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span id="auto-capture-text">自动捕获</span>
+        </button>
+      </div>
     </div>
 
     <!-- Batch Scanning Status -->
@@ -64,9 +90,6 @@
         <div class="platform-chip" data-platform="yuanbao">
           <div class="chip-dot" style="background:#4A90E2"></div>元宝
         </div>
-        <div class="platform-chip" data-platform="claude">
-          <div class="chip-dot" style="background:#D4A373"></div>Claude
-        </div>
         <div class="platform-chip" data-platform="deepseek">
           <div class="chip-dot" style="background:#6366F1"></div>DeepSeek
         </div>
@@ -78,6 +101,9 @@
         </div>
         <div class="platform-chip" data-platform="chatgpt">
           <div class="chip-dot" style="background:#10A37F"></div>ChatGPT
+        </div>
+        <div class="platform-chip" data-platform="claude">
+          <div class="chip-dot" style="background:#D4A373"></div>Claude
         </div>
       </div>
     </div>

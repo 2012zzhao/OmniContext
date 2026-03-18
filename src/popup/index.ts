@@ -49,9 +49,19 @@ const PLATFORM_ICONS: Record<Platform, string> = {
   chatgpt: getPlatformIcon('chatgpt'),
 };
 
+// Icon URLs for current assistant card
+const PLATFORM_ICON_URLS: Record<Platform, string> = {
+  doubao: chrome.runtime.getURL('icons/platforms/doubao.svg'),
+  yuanbao: chrome.runtime.getURL('icons/platforms/yuanbao.svg'),
+  deepseek: chrome.runtime.getURL('icons/platforms/deepseek.svg'),
+  kimi: chrome.runtime.getURL('icons/platforms/kimi.svg'),
+  gemini: chrome.runtime.getURL('icons/platforms/gemini.svg'),
+  chatgpt: chrome.runtime.getURL('icons/platforms/chatgpt.svg'),
+  claude: chrome.runtime.getURL('icons/platforms/claude.svg'),
+};
+
 // DOM Elements
 const sessionListEl = document.getElementById('session-list')!;
-const currentPageEl = document.getElementById('current-page')!;
 const exportBtn = document.getElementById('export-btn')!;
 const importBtn = document.getElementById('import-btn')!;
 const refreshBtn = document.getElementById('refresh-btn')!;
@@ -78,9 +88,17 @@ const importTagCount = document.getElementById('import-tag-count')!;
 const importCancel = document.getElementById('import-cancel')!;
 const importConfirm = document.getElementById('import-confirm')!;
 
-// Batch capture elements
-const batchCaptureSection = document.getElementById('batch-capture-section')!;
+// Current assistant card elements
+const currentAssistantCard = document.getElementById('current-assistant-card')!;
+const assistantPlatformThumb = document.getElementById('assistant-platform-thumb')! as HTMLElement;
+const assistantPlatformIcon = document.getElementById('assistant-platform-icon')! as HTMLImageElement;
+const assistantPlatformName = document.getElementById('assistant-platform-name')!;
+const assistantStatusDot = document.getElementById('assistant-status-dot')!;
+const assistantStatusText = document.getElementById('assistant-status-text')!;
+// Current assistant card buttons
 const batchCaptureBtn = document.getElementById('batch-capture-btn')! as HTMLButtonElement;
+const autoCaptureBtn = document.getElementById('auto-capture-btn')! as HTMLButtonElement;
+const autoCaptureText = document.getElementById('auto-capture-text')!;
 const batchScanning = document.getElementById('batch-scanning')!;
 const batchScanningPlatform = document.getElementById('batch-scan-platform')!;
 const batchScanningCount = batchScanning.querySelector('.batch-scanning-count strong')!;
@@ -204,6 +222,95 @@ function updateServerStatusUI() {
   }
 }
 
+// Current assistant card state
+let isAutoCaptureEnabled = false;
+
+// Load auto capture state from storage
+async function loadAutoCaptureState(): Promise<void> {
+  try {
+    const result = await chrome.storage.local.get('autoCaptureEnabled');
+    isAutoCaptureEnabled = (result.autoCaptureEnabled as boolean | undefined) ?? false;
+    updateAutoCaptureToggleUI();
+  } catch (e) {
+    console.error('Failed to load auto capture state:', e);
+  }
+}
+
+// Save auto capture state to storage
+async function saveAutoCaptureState(enabled: boolean): Promise<void> {
+  try {
+    await chrome.storage.local.set({ autoCaptureEnabled: enabled });
+  } catch (e) {
+    console.error('Failed to save auto capture state:', e);
+  }
+}
+
+// Update auto capture toggle UI
+function updateAutoCaptureToggleUI(): void {
+  if (isAutoCaptureEnabled) {
+    autoCaptureBtn.classList.add('active');
+    autoCaptureText.textContent = '自动捕获：开';
+  } else {
+    autoCaptureBtn.classList.remove('active');
+    autoCaptureText.textContent = '自动捕获：关';
+  }
+}
+
+// Toggle auto capture state
+async function toggleAutoCapture(): Promise<void> {
+  isAutoCaptureEnabled = !isAutoCaptureEnabled;
+  updateAutoCaptureToggleUI();
+  await saveAutoCaptureState(isAutoCaptureEnabled);
+
+  // Update current assistant card to reflect connection status
+  updateCurrentAssistantCard(currentPlatform, isAutoCaptureEnabled);
+
+  // Notify content script about the change
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id && currentPlatform) {
+      await chrome.tabs.sendMessage(tab.id, {
+        type: 'AUTO_CAPTURE_TOGGLE',
+        enabled: isAutoCaptureEnabled
+      });
+    }
+  } catch (e) {
+    // Content script may not be available
+  }
+
+  showToast(isAutoCaptureEnabled ? '✅ 已开启自动捕获' : '⏸️ 已关闭自动捕获');
+}
+
+// Update current assistant card display
+function updateCurrentAssistantCard(platform: Platform | null, isConnected: boolean = false): void {
+  if (!platform) {
+    currentAssistantCard.style.display = 'none';
+    return;
+  }
+
+  // Show the card
+  currentAssistantCard.style.display = 'block';
+
+  // Update platform icon (transparent background)
+  assistantPlatformThumb.style.background = 'transparent';
+  assistantPlatformIcon.src = PLATFORM_ICON_URLS[platform] || '';
+  assistantPlatformIcon.alt = formatPlatformName(platform);
+
+  // Update platform name
+  assistantPlatformName.textContent = formatPlatformName(platform);
+
+  // Update status based on auto-capture state
+  if (isConnected) {
+    assistantStatusDot.classList.add('connected');
+    assistantStatusText.classList.add('connected');
+    assistantStatusText.textContent = '已连接';
+  } else {
+    assistantStatusDot.classList.remove('connected');
+    assistantStatusText.classList.remove('connected');
+    assistantStatusText.textContent = '已断开：请刷新AI平台，并打开自动捕获开关';
+  }
+}
+
 // Debounce helper
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
   let timer: ReturnType<typeof setTimeout>;
@@ -214,41 +321,62 @@ function debounce<T extends (...args: any[]) => any>(fn: T, delay: number): T {
 }
 
 // Initialize
-async function init() {
-  // Check server status
-  await checkServerStatus();
-
-  // Detect current platform
+// Refresh current platform detection
+async function refreshCurrentPlatform(): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {
       currentPlatform = detectPlatform(tab.url);
-      updateCurrentPage();
 
-      // Show batch capture button if on supported platform
-      if (currentPlatform) {
-        batchCaptureSection.style.display = 'block';
-        batchCaptureBtn.innerHTML = `📦 批量捕获 ${formatPlatformName(currentPlatform)} 所有会话`;
-      } else {
-        batchCaptureSection.style.display = 'none';
-      }
-
-      // Check if batch capture is already running and restore state
-      if (tab.id) {
+      // Check real connection status with content script
+      let isReallyConnected = false;
+      if (tab.id && currentPlatform) {
         try {
-          const response = await chrome.tabs.sendMessage(tab.id, { type: 'BATCH_CAPTURE_STATUS' });
-          if (response?.isRunning && response?.progress) {
+          // First sync the auto-capture state to content script
+          await chrome.tabs.sendMessage(tab.id, {
+            type: 'AUTO_CAPTURE_TOGGLE',
+            enabled: isAutoCaptureEnabled
+          });
+
+          // Then query the real status
+          const response = await chrome.tabs.sendMessage(tab.id, { type: 'AUTO_CAPTURE_STATUS' });
+          console.log('[OmniContext] Auto capture status from content script:', response);
+
+          // Only consider connected if:
+          // 1. Content script reports enabled
+          // 2. Has detected platform
+          // 3. Has session ID
+          isReallyConnected = response?.isConnected === true;
+
+          // Also check batch capture status
+          const batchResponse = await chrome.tabs.sendMessage(tab.id, { type: 'BATCH_CAPTURE_STATUS' });
+          if (batchResponse?.isRunning && batchResponse?.progress) {
             isBatchCapturing = true;
-            updateBatchCaptureProgress(response.progress);
+            updateBatchCaptureProgress(batchResponse.progress);
           }
-        } catch {
-          // Content script not ready or no capture running
+        } catch (e) {
+          console.log('[OmniContext] Content script not ready or no connection:', e);
+          isReallyConnected = false;
         }
       }
+
+      // Update current assistant card with real connection status
+      updateCurrentAssistantCard(currentPlatform, isReallyConnected);
     }
   } catch (e) {
     console.error('Failed to detect platform:', e);
   }
+}
+
+async function init() {
+  // Check server status
+  await checkServerStatus();
+
+  // Load auto capture state
+  await loadAutoCaptureState();
+
+  // Detect current platform
+  await refreshCurrentPlatform();
 
   // Load collapsed state before loading sessions
   await loadCollapsedState();
@@ -320,10 +448,35 @@ async function init() {
     }
   });
 
+  // Auto capture button event
+  autoCaptureBtn.addEventListener('click', toggleAutoCapture);
+
   // Search events
   searchInput.addEventListener('input', debounce(handleSearch, 300));
   searchClear.addEventListener('click', clearSearch);
   filterPlatform.addEventListener('click', handleFilterChange);
+
+  // Listen for side panel becoming visible (user reopens side panel)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('[OmniContext] Side panel visible, refreshing platform detection');
+      refreshCurrentPlatform();
+    }
+  });
+
+  // Listen for tab changes (user switches to different tab)
+  chrome.tabs.onActivated.addListener(() => {
+    console.log('[OmniContext] Tab changed, refreshing platform detection');
+    refreshCurrentPlatform();
+  });
+
+  // Listen for URL changes in current tab
+  chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+    if (changeInfo.url && tab.active) {
+      console.log('[OmniContext] URL changed, refreshing platform detection');
+      refreshCurrentPlatform();
+    }
+  });
 }
 
 function handleSearch() {
@@ -362,15 +515,6 @@ function highlightText(text: string, keyword: string): string {
 
 function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function updateCurrentPage() {
-  if (currentPlatform) {
-    const name = formatPlatformName(currentPlatform);
-    currentPageEl.textContent = `📍 当前: ${name}`;
-  } else {
-    currentPageEl.textContent = '📍 未在支持的AI平台';
-  }
 }
 
 async function loadSessions() {
@@ -417,6 +561,18 @@ async function loadSessions() {
     sessions = await sessionStorage.getAllSessions();
     console.log('[OmniContext] Loaded sessions from local storage:', sessions.length);
   }
+
+  // 规范化 platform 值（统一转为小写，解决历史数据大小写不一致问题）
+  const rawPlatforms = new Set(sessions.map(s => s.platform));
+  console.log('[OmniContext] Raw platforms before normalization:', Array.from(rawPlatforms));
+
+  sessions = sessions.map(s => ({
+    ...s,
+    platform: (s.platform?.toLowerCase() as Platform) || 'unknown'
+  }));
+
+  const normalizedPlatforms = new Set(sessions.map(s => s.platform));
+  console.log('[OmniContext] Platforms after normalization:', Array.from(normalizedPlatforms));
 
   allSessions = sessions;
 
@@ -1035,7 +1191,13 @@ async function handleExport() {
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `omnicontext-backup-${new Date().toISOString().split('T')[0]}.json`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  a.download = `omnicontext-backup-${year}-${month}${day}-${hours}${minutes}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1152,16 +1314,7 @@ async function handleBatchCaptureStart() {
 
   // Check if already running locally
   if (isBatchCapturing) {
-    const platformNames: Record<Platform, string> = {
-      doubao: '豆包',
-      yuanbao: '元宝',
-      claude: 'Claude',
-      deepseek: 'DeepSeek',
-      kimi: 'Kimi',
-      gemini: 'Gemini',
-      chatgpt: 'ChatGPT',
-    };
-    showToast(`正在批量捕获 ${platformNames[currentPlatform] || currentPlatform} 的会话`);
+    showToast(`正在批量捕获 ${formatPlatformName(currentPlatform)} 的会话`);
     return;
   }
 
@@ -1169,14 +1322,7 @@ async function handleBatchCaptureStart() {
   try {
     const lockCheck = await chrome.runtime.sendMessage({ type: 'BATCH_CAPTURE_CHECK_LOCK' });
     if (lockCheck.isLocked) {
-      const platformNames: Record<string, string> = {
-        doubao: '豆包',
-        yuanbao: '元宝',
-        claude: 'Claude',
-        deepseek: 'DeepSeek',
-      };
-      const lockedPlatform = platformNames[lockCheck.platform] || lockCheck.platform;
-      showToast(`请先完成 ${lockedPlatform} 的批量捕获`);
+      showToast(`请先完成 ${formatPlatformName(lockCheck.platform)} 的批量捕获`);
       return;
     }
   } catch (err) {
@@ -1233,17 +1379,16 @@ async function handleBatchCaptureStart() {
     if (response.success) {
       isBatchCapturing = true;
       // Show scanning UI initially
-      batchCaptureSection.style.display = 'none';
       batchScanning.style.display = 'block';
       batchProgress.style.display = 'none';
       batchScanningCount.textContent = '0';
     } else {
       // 获取失败，释放锁
       await chrome.runtime.sendMessage({ type: 'BATCH_CAPTURE_RELEASE_LOCK' });
-      // 针对元宝/DeepSeek"未找到会话列表"显示特殊提示
-      if (currentPlatform === 'yuanbao' && response.error?.includes('未找到会话列表')) {
+      // 针对元宝/DeepSeek"请打开会话列表侧边栏"显示特殊提示
+      if (currentPlatform === 'yuanbao' && response.error?.includes('请打开会话列表侧边栏')) {
         showToast('💡 请在元宝页面中点击左侧菜单栏打开元宝的会话列表，OmniContext才能捕获到会话哦~');
-      } else if (currentPlatform === 'deepseek' && response.error?.includes('未找到会话列表')) {
+      } else if (currentPlatform === 'deepseek' && response.error?.includes('请打开会话列表侧边栏')) {
         showToast('💡 请在 DeepSeek 页面中点击左上角菜单按钮打开会话历史列表，OmniContext才能捕获到会话哦~');
       } else {
         showToast(response.error || '启动失败');
@@ -1296,16 +1441,7 @@ function updateBatchCaptureProgress(progress: {
     batchProgress.style.display = 'none';
     // 设置平台名称
     if (batchScanningPlatform && currentPlatform) {
-      const platformNames: Record<Platform, string> = {
-        doubao: '豆包',
-        yuanbao: '元宝',
-        claude: 'Claude',
-        deepseek: 'DeepSeek',
-        kimi: 'Kimi',
-        gemini: 'Gemini',
-      chatgpt: 'ChatGPT',
-      };
-      batchScanningPlatform.textContent = platformNames[currentPlatform] || currentPlatform;
+      batchScanningPlatform.textContent = formatPlatformName(currentPlatform);
     }
     if (progress.discovered !== undefined) {
       batchScanningCount.textContent = String(progress.discovered);
@@ -1371,7 +1507,6 @@ function updateBatchCaptureProgress(progress: {
 function hideBatchCaptureProgress() {
   batchScanning.style.display = 'none';
   batchProgress.style.display = 'none';
-  batchCaptureSection.style.display = currentPlatform ? 'block' : 'none';
 }
 
 // ========== Session Selection Dialog ==========

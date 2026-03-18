@@ -4,21 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniContext</title>
-  <script type="module" crossorigin src="/assets/popup-BQB01kRe.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/extractor-OfZFsms3.js">
-  <link rel="stylesheet" crossorigin href="/assets/popup-D3pQA1Pb.css">
+  <script type="module" crossorigin src="/assets/popup-BKCXdS0X.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/extractor-YHhlWPwb.js">
+  <link rel="stylesheet" crossorigin href="/assets/popup-Cd7X95zx.css">
 </head>
 <body>
   <div id="app">
     <header class="header">
       <h1>🧠 OmniContext</h1>
-      <span id="current-page" class="current-page">检测中...</span>
       <span id="server-status" class="server-status" title="本地服务器状态">○</span>
     </header>
 
-    <!-- Batch Capture Section -->
-    <div id="batch-capture-section" class="batch-capture-section" style="display: none;">
-      <button id="batch-capture-btn" class="btn btn-batch">📦 批量捕获当前平台所有会话</button>
+    <!-- Current Assistant Card -->
+    <div id="current-assistant-card" class="active-context-card" style="display: none;">
+      <div class="context-header">
+        <div id="assistant-platform-thumb" class="platform-thumb">
+          <img id="assistant-platform-icon" src="" alt="" width="18" height="18">
+        </div>
+        <div class="platform-info">
+          <div id="assistant-platform-name" class="platform-name">-</div>
+          <div>
+            <span id="assistant-status-dot" class="status-dot"></span>
+            <span id="assistant-status-text" class="status-text">未连接</span>
+          </div>
+        </div>
+      </div>
+      <div class="assistant-actions">
+        <button id="batch-capture-btn" class="btn btn-assistant-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          批量捕获
+        </button>
+        <button id="auto-capture-btn" class="btn btn-assistant-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          <span id="auto-capture-text">自动捕获</span>
+        </button>
+      </div>
     </div>
 
     <!-- Batch Scanning Status -->
@@ -56,23 +82,30 @@
         <input type="text" id="search-input" class="search-input" placeholder="搜索会话...">
         <button id="search-clear" class="search-clear" style="display: none;">×</button>
       </div>
-      <div class="filter-bar">
-        <div class="filter-wrapper">
-          <select id="filter-platform" class="filter-select">
-            <option value="">全部平台</option>
-            <option value="doubao">🫘 豆包</option>
-            <option value="yuanbao">💎 元宝</option>
-            <option value="claude">🤖 Claude</option>
-            <option value="deepseek">🔮 DeepSeek</option>
-            <option value="kimi">🌙 Kimi</option>
-            <option value="gemini">✨ Gemini</option>
-          </select>
+      <div class="platform-scroller" id="filter-platform">
+        <div class="platform-chip active" data-platform="">
+          <div class="chip-dot" style="background:#888"></div>全部
         </div>
-        <div class="filter-wrapper">
-          <select id="filter-tags" class="filter-select">
-            <option value="">全部标签</option>
-            <!-- Tags will be populated dynamically -->
-          </select>
+        <div class="platform-chip" data-platform="doubao">
+          <div class="chip-dot" style="background:#00D4AA"></div>豆包
+        </div>
+        <div class="platform-chip" data-platform="yuanbao">
+          <div class="chip-dot" style="background:#4A90E2"></div>元宝
+        </div>
+        <div class="platform-chip" data-platform="deepseek">
+          <div class="chip-dot" style="background:#6366F1"></div>DeepSeek
+        </div>
+        <div class="platform-chip" data-platform="kimi">
+          <div class="chip-dot" style="background:#FF6B35"></div>Kimi
+        </div>
+        <div class="platform-chip" data-platform="gemini">
+          <div class="chip-dot" style="background:#4285F4"></div>Gemini
+        </div>
+        <div class="platform-chip" data-platform="chatgpt">
+          <div class="chip-dot" style="background:#10A37F"></div>ChatGPT
+        </div>
+        <div class="platform-chip" data-platform="claude">
+          <div class="chip-dot" style="background:#D4A373"></div>Claude
         </div>
       </div>
     </div>

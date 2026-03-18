@@ -337,8 +337,8 @@ function simpleHash(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
-export function formatPlatformName(platform: Platform): string {
-  const names: Record<Platform, string> = {
+export function formatPlatformName(platform: Platform | string): string {
+  const names: Record<string, string> = {
     doubao: '豆包',
     yuanbao: '元宝',
     claude: 'Claude',
@@ -347,7 +347,7 @@ export function formatPlatformName(platform: Platform): string {
     gemini: 'Gemini',
     chatgpt: 'ChatGPT',
   };
-  return names[platform];
+  return names[platform?.toLowerCase()] || platform;
 }
 
 export interface MessageExtractor {

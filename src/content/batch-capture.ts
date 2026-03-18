@@ -94,7 +94,7 @@ export class BatchCapture {
           currentTitle: '',
           captured: 0,
           status: 'error',
-          error: '未找到会话列表',
+          error: '请打开会话列表侧边栏',
         });
         return;
       }
