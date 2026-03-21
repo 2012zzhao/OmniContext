@@ -4,19 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniContext</title>
-  <script type="module" crossorigin src="/assets/popup-BKCXdS0X.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/extractor-YHhlWPwb.js">
-  <link rel="stylesheet" crossorigin href="/assets/popup-Cd7X95zx.css">
+  <script type="module" crossorigin src="/assets/popup-D1DpUFQ-.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/extractor-C4aYI8HI.js">
+  <link rel="stylesheet" crossorigin href="/assets/popup-KEbYZXlX.css">
 </head>
 <body>
   <div id="app">
-    <header class="header">
-      <h1>🧠 OmniContext</h1>
-      <span id="server-status" class="server-status" title="本地服务器状态">○</span>
-    </header>
-
     <!-- Current Assistant Card -->
-    <div id="current-assistant-card" class="active-context-card" style="display: none;">
+    <div id="current-assistant-card" class="active-context-card">
       <div class="context-header">
         <div id="assistant-platform-thumb" class="platform-thumb">
           <img id="assistant-platform-icon" src="" alt="" width="18" height="18">
@@ -30,12 +25,6 @@
         </div>
       </div>
       <div class="assistant-actions">
-        <button id="batch-capture-btn" class="btn btn-assistant-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          批量捕获
-        </button>
         <button id="auto-capture-btn" class="btn btn-assistant-secondary">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 4v6h-6"/>
@@ -43,6 +32,12 @@
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
           <span id="auto-capture-text">自动捕获</span>
+        </button>
+        <button id="batch-capture-btn" class="btn btn-assistant-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          批量捕获
         </button>
       </div>
     </div>
@@ -245,6 +240,47 @@
       <div class="dialog-footer">
         <button id="session-view-copy" class="btn btn-secondary">📋 复制全部</button>
         <button id="session-view-close" class="btn btn-primary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onboarding Dialog -->
+  <div id="onboarding-dialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog dialog-onboarding">
+      <div class="onboarding-content">
+        <div class="onboarding-icon">🧠</div>
+        <h2 class="onboarding-title">OmniContext</h2>
+
+        <div class="onboarding-steps">
+          <div class="onboarding-step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <div class="step-title">打开AI平台</div>
+              <div class="step-desc">访问豆包、ChatGPT等</div>
+            </div>
+          </div>
+          <div class="onboarding-step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <div class="step-title">开启自动捕获</div>
+              <div class="step-desc">点击「自动捕获」按钮，持续捕获AI记忆</div>
+            </div>
+          </div>
+          <div class="onboarding-step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <div class="step-title">批量捕获会话</div>
+              <div class="step-desc">点击「批量捕获」按钮，扫描全部历史对话，无缝迁移AI记忆</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <label class="onboarding-dont-show">
+          <input type="checkbox" id="dont-show-again" checked>
+          <span>不再提示</span>
+        </label>
+        <button id="onboarding-start-btn" class="btn btn-primary">开始</button>
       </div>
     </div>
   </div>

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "🧠 OmniContext",
+  "name": "OmniContext",
   "version": "1.0.0",
   "description": "跨平台AI对话上下文管理工具 - 在不同AI助手间共享记忆",
   "commands": {
@@ -31,25 +31,25 @@
   "action": {
     "default_title": "OmniContext - 打开侧边栏",
     "default_icon": {
-      "16": "icons/icon.svg",
-      "48": "icons/icon.svg",
-      "128": "icons/icon.svg",
-      "256": "icons/icon.svg"
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     }
   },
   "side_panel": {
     "default_path": "src/popup/index.html",
     "default_icon": {
-      "16": "icons/icon.svg",
-      "48": "icons/icon.svg",
-      "128": "icons/icon.svg",
-      "256": "icons/icon.svg"
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
     }
   },
   "content_scripts": [
     {
       "js": [
-        "assets/index.ts-loader-pYnUnUGk.js"
+        "assets/index.ts-loader-Bj1ORp-G.js"
       ],
       "matches": [
         "https://www.doubao.com/*",
@@ -69,9 +69,10 @@
     "type": "module"
   },
   "icons": {
-    "16": "icons/icon.svg",
-    "48": "icons/icon.svg",
-    "128": "icons/icon.svg"
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "web_accessible_resources": [
     {
@@ -79,7 +80,8 @@
         "<all_urls>"
       ],
       "resources": [
-        "icons/platforms/*.svg"
+        "icons/platforms/*.svg",
+        "icons/unknown.svg"
       ],
       "use_dynamic_url": false
     },
@@ -96,7 +98,7 @@
       ],
       "resources": [
         "assets/extractor-C4aYI8HI.js",
-        "assets/index.ts-DJXQVGtP.js"
+        "assets/index.ts-CX3Tmlxo.js"
       ],
       "use_dynamic_url": false
     }
