@@ -252,18 +252,12 @@ async function saveAutoCaptureState(enabled: boolean): Promise<void> {
 
 // Update auto capture toggle UI
 function updateAutoCaptureToggleUI(): void {
-  // 检查是否有平台连接
-  const hasPlatform = !!currentPlatform;
-
-  if (!hasPlatform) {
-    // 无平台连接时，    autoCaptureBtn.classList.remove('active');
-    autoCaptureText.textContent = '自动捕获：未连接';
-  } else if (isAutoCaptureEnabled) {
+  if (isAutoCaptureEnabled) {
     autoCaptureBtn.classList.add('active');
-    autoCaptureText.textContent = '自动捕获：开启中';
+    autoCaptureText.textContent = '自动捕获：开';
   } else {
     autoCaptureBtn.classList.remove('active');
-    autoCaptureText.textContent = '自动捕获：已关闭';
+    autoCaptureText.textContent = '自动捕获：关';
   }
 }
 
@@ -489,22 +483,21 @@ async function init() {
     }
   });
 
-  // Check and show onboarding dialog for first-time users
-  if (await checkAndShowOnboarding()) {
-    showOnboardingDialog();
-  }
-
-  // Onboarding dialog events
+  // Onboarding events
   onboardingStartBtn.addEventListener('click', async () => {
     const dontShowAgain = dontShowAgainCheckbox.checked;
     await closeOnboardingDialog(dontShowAgain);
   });
-
   onboardingDialog.addEventListener('click', (e) => {
     if (e.target === onboardingDialog) {
       closeOnboardingDialog(dontShowAgainCheckbox.checked);
     }
   });
+
+  // Check and show onboarding
+  if (await checkAndShowOnboarding()) {
+    showOnboardingDialog();
+  }
 }
 
 function handleSearch() {

@@ -28,7 +28,7 @@
         </div>
       </div>
       <div class="assistant-actions">
-        <button id="auto-capture-btn" class="btn btn-assistant-primary">
+        <button id="auto-capture-btn" class="btn btn-assistant-secondary">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 4v6h-6"/>
             <path d="M1 20v-6h6"/>
@@ -36,7 +36,7 @@
           </svg>
           <span id="auto-capture-text">自动捕获</span>
         </button>
-        <button id="batch-capture-btn" class="btn btn-assistant-secondary">
+        <button id="batch-capture-btn" class="btn btn-assistant-primary">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
@@ -252,35 +252,30 @@
     <div class="dialog dialog-onboarding">
       <div class="onboarding-content">
         <div class="onboarding-icon">🧠</div>
-        <h2 class="onboarding-title">欢迎使用 OmniContext</h2>
-        <p class="onboarding-subtitle">跨平台AI对话管理工具</p>
+        <h2 class="onboarding-title">OmniContext</h2>
 
         <div class="onboarding-steps">
           <div class="onboarding-step">
             <span class="step-number">1</span>
             <div class="step-content">
-              <strong>打开AI平台</strong>
-              <p>访问豆包、ChatGPT、Gemini、Kimi等支持的AI平台</p>
+              <div class="step-title">打开AI平台</div>
+              <div class="step-desc">访问豆包、ChatGPT等</div>
             </div>
           </div>
           <div class="onboarding-step">
             <span class="step-number">2</span>
             <div class="step-content">
-              <strong>开启自动捕获</strong>
-              <p>点击侧边栏中的「自动捕获」按钮，对话会自动保存</p>
+              <div class="step-title">开启自动捕获</div>
+              <div class="step-desc">点击「自动捕获」按钮，持续捕获AI记忆</div>
             </div>
           </div>
           <div class="onboarding-step">
             <span class="step-number">3</span>
             <div class="step-content">
-              <strong>批量捕获历史</strong>
-              <p>需要捕获历史会话时，使用「批量捕获」功能</p>
+              <div class="step-title">批量捕获会话</div>
+              <div class="step-desc">点击「批量捕获」按钮，扫描全部历史对话，无缝迁移AI记忆</div>
             </div>
           </div>
-        </div>
-
-        <div class="onboarding-tip">
-          💡 提示：OmniContext 会自动检测当前打开的AI平台
         </div>
       </div>
       <div class="dialog-footer">
@@ -288,7 +283,7 @@
           <input type="checkbox" id="dont-show-again" checked>
           <span>不再提示</span>
         </label>
-        <button id="onboarding-start-btn" class="btn btn-primary">开始使用</button>
+        <button id="onboarding-start-btn" class="btn btn-primary">开始</button>
       </div>
     </div>
   </div>
