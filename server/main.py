@@ -1,5 +1,5 @@
 """
-OmniContext Server - 本地 HTTP 服务
+ContextDrop Server - 本地 HTTP 服务
 
 提供 REST API 供 SDK 和其他程序访问
 """
@@ -19,7 +19,7 @@ from storage import storage
 
 # 创建 FastAPI 应用
 app = FastAPI(
-    title="OmniContext Server",
+    title="ContextDrop Server",
     description="本地 Memory 存储服务，支持 API 读写",
     version="0.1.0"
 )
@@ -214,5 +214,5 @@ def run_server(host: str = "127.0.0.1", port: int = 8765):
 
 
 if __name__ == "__main__":
-    print(f"🚀 OmniContext Server starting at http://127.0.0.1:8765")
+    print(f"🚀 ContextDrop Server starting at http://127.0.0.1:8765")
     run_server()

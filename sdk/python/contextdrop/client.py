@@ -1,7 +1,7 @@
 """
-OmniContext 客户端
+ContextDrop 客户端
 
-与本地 OmniContext 服务交互
+与本地 ContextDrop 服务交互
 """
 import json
 from typing import Optional, List, Dict, Any, Literal
@@ -12,19 +12,19 @@ from urllib.parse import urlencode
 from .models import Session, Memory, Message, SearchResult
 
 
-class OmniContextError(Exception):
-    """OmniContext 错误"""
+class ContextDropError(Exception):
+    """ContextDrop 错误"""
     pass
 
 
 class Client:
     """
-    OmniContext 客户端
+    ContextDrop 客户端
 
     用法:
-        import omnicontext
+        import contextdrop
 
-        client = omnicontext.Client()
+        client = contextdrop.Client()
 
         # 读取
         sessions = client.get_sessions()
@@ -69,9 +69,9 @@ class Client:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            raise OmniContextError(f"HTTP {e.code}: {error_body}")
+            raise ContextDropError(f"HTTP {e.code}: {error_body}")
         except URLError as e:
-            raise OmniContextError(f"连接失败: {e.reason}。请确保 OmniContext 服务正在运行。")
+            raise ContextDropError(f"连接失败: {e.reason}。请确保 ContextDrop 服务正在运行。")
 
     # ============ Session API ============
 
@@ -116,7 +116,7 @@ class Client:
         try:
             data = self._request("GET", f"/api/sessions/{session_id}")
             return Session.from_dict(data)
-        except OmniContextError as e:
+        except ContextDropError as e:
             if "404" in str(e):
                 return None
             raise
@@ -177,7 +177,7 @@ class Client:
         try:
             self._request("DELETE", f"/api/sessions/{session_id}")
             return True
-        except OmniContextError:
+        except ContextDropError:
             return False
 
     def search_sessions(self, query: str, limit: int = 10) -> List[SearchResult]:
@@ -255,7 +255,7 @@ class Client:
         try:
             self._request("DELETE", f"/api/memories/{memory_id}")
             return True
-        except OmniContextError:
+        except ContextDropError:
             return False
 
     # ============ Stats API ============
@@ -281,7 +281,7 @@ class Client:
         try:
             self._request("GET", "/health")
             return True
-        except OmniContextError:
+        except ContextDropError:
             return False
 
     # ============ Convenience Aliases ============

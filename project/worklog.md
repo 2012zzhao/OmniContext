@@ -1,4 +1,4 @@
-# OmniContext 项目日志
+# ContextDrop 项目日志
 
 > 倒排式记录，最新记录在最上方。只增不减。
 
@@ -35,7 +35,7 @@
 ### 实现内容
 
 #### 1. 移除顶部标题栏
-- 移除 `🧠 OmniContext` 标题（使用 Chrome 扩展默认顶栏）
+- 移除 `🧠 ContextDrop` 标题（使用 Chrome 扩展默认顶栏）
 - 简化界面，减少冗余
 
 #### 2. 统一卡片间距
@@ -110,14 +110,14 @@
 **正文：**
 
 ### 目标
-让 Side Panel 顶部标题栏显示 `🧠 OmniContext` 和自定义图标，类似豆包插件的效果。
+让 Side Panel 顶部标题栏显示 `🧠 ContextDrop` 和自定义图标，类似豆包插件的效果。
 
 ### 已尝试的方案
 
 #### 1. 修改 manifest.json 的 name 字段
 ```json
 {
-  "name": "🧠 OmniContext"
+  "name": "🧠 ContextDrop"
 }
 ```
 **结果：** ❌ 标题栏仍显示默认图标
@@ -368,7 +368,7 @@ platform: currentPlatform?.toLowerCase() as Platform,
 **重要习惯：** 每完成一次迭代（阶段性开发完成，确保无 bug，非中间阶段），必须运行 `deploy.sh` 构建产物：
 
 ```bash
-cd ~/cc-workspace/OmniContext && ./deploy.sh
+cd ~/cc-workspace/ContextDrop && ./deploy.sh
 ```
 
 这样用户可以立即拿到可用的扩展进行测试。
@@ -377,7 +377,7 @@ cd ~/cc-workspace/OmniContext && ./deploy.sh
 1. 开发代码
 2. `npm test` 测试通过（确保无 bug）
 3. `./deploy.sh` 构建部署
-4. 产物输出到 Windows 桌面：`C:\Users\73523\Desktop\OmniContext`
+4. 产物输出到 Windows 桌面：`C:\Users\73523\Desktop\ContextDrop`
 
 **注意：** 只在完整迭代完成后执行，中间开发阶段不需要。
 
@@ -385,7 +385,7 @@ cd ~/cc-workspace/OmniContext && ./deploy.sh
 
 ## 2026-03-10 Gemini 平台支持开发
 
-**摘要：** 为 OmniContext 添加 Gemini (gemini.google.com) 平台的会话捕获支持
+**摘要：** 为 ContextDrop 添加 Gemini (gemini.google.com) 平台的会话捕获支持
 
 **正文：**
 
@@ -448,7 +448,7 @@ gemini.google.com/app/{sessionId}
 **正文：**
 
 ### 背景
-当前 OmniContext 只能通过网页捕获主流 AI 助手的对话。本功能新增 **API 读写能力**，让用户程序和 Agent 也能读写 memory，使 OmniContext 成为连接 AI 助手和用户程序/Agent 的上下文管理中心。
+当前 ContextDrop 只能通过网页捕获主流 AI 助手的对话。本功能新增 **API 读写能力**，让用户程序和 Agent 也能读写 memory，使 ContextDrop 成为连接 AI 助手和用户程序/Agent 的上下文管理中心。
 
 ### 交互对象分类
 
@@ -462,7 +462,7 @@ gemini.google.com/app/{sessionId}
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    OmniContext 本地服务                          │
+│                    ContextDrop 本地服务                          │
 │                                                                  │
 │   ┌──────────────┐                                              │
 │   │ Native Host  │ ←── Native Messaging ──→ Chrome 扩展          │
@@ -926,9 +926,9 @@ sendResponse({ sidebarVisible: true });
 **摘要：** 完成项目重命名、GitHub仓库同步、AgenticEngineering文档体系建立
 
 **正文：**
-- 项目正式命名为 OmniContext
-- 完成代码库迁移至 `/home/zhaozifeng/cc-workspace/OmniContext`
-- 同步到 GitHub 仓库：https://github.com/2012zzhao/OmniContext.git
+- 项目正式命名为 ContextDrop
+- 完成代码库迁移至 `/home/zhaozifeng/cc-workspace/ContextDrop`
+- 同步到 GitHub 仓库：https://github.com/2012zzhao/ContextDrop.git
 - 主分支设为 `main`
 - 建立项目管理文档体系（project/ 目录）
 - 构建流程标准化：构建后自动复制到桌面供Chrome加载测试

@@ -1,15 +1,15 @@
 #!/bin/bash
-# OmniContext 一键构建部署脚本
+# ContextDrop 一键构建部署脚本
 # 用法: ./deploy.sh
 
 set -e
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESKTOP_DIR="/mnt/c/Users/73523/Desktop"
-EXTENSION_NAME="OmniContext"
+EXTENSION_NAME="ContextDrop"
 
 echo "========================================"
-echo "  OmniContext 构建部署脚本"
+echo "  ContextDrop 构建部署脚本"
 echo "========================================"
 
 # 切换到项目目录

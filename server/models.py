@@ -1,5 +1,5 @@
 """
-OmniContext Server 数据模型
+ContextDrop Server 数据模型
 """
 from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field

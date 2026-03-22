@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "OmniContext",
-  "version": "0.0.3",
+  "name": "ContextDrop",
+  "version": "1.0.0",
   "description": "跨平台AI对话上下文管理工具 - 在不同AI助手间共享记忆",
   "commands": {
     "_execute_action": {
@@ -9,7 +9,7 @@
         "default": "Ctrl+M",
         "mac": "Command+M"
       },
-      "description": "打开/关闭 OmniContext 侧边栏"
+      "description": "打开/关闭 ContextDrop 侧边栏"
     }
   },
   "permissions": [
@@ -29,7 +29,7 @@
     "https://chat.openai.com/*"
   ],
   "action": {
-    "default_title": "OmniContext - 打开侧边栏",
+    "default_title": "ContextDrop - 打开侧边栏",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",

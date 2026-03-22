@@ -1,5 +1,5 @@
 """
-OmniContext SDK 单元测试
+ContextDrop SDK 单元测试
 
 这些测试不需要实际服务器运行，使用 mock 进行测试
 """
@@ -12,8 +12,8 @@ import os
 # 添加 sdk 到 path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from omnicontext import Client, Session, Memory, Message, SearchResult, OmniContextError
-import omnicontext.client as client_module
+from contextdrop import Client, Session, Memory, Message, SearchResult, ContextDropError
+import contextdrop.client as client_module
 
 
 class MockResponse:
@@ -302,7 +302,7 @@ class TestClient:
         )
 
         client = Client()
-        with pytest.raises(OmniContextError):
+        with pytest.raises(ContextDropError):
             client.get_sessions()
 
     def test_alias_methods(self):

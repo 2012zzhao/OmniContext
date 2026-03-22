@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OmniContext Native Host Installer
+ContextDrop Native Host Installer
 
 This script installs the Native Messaging Host configuration for Chrome.
 Run this script once to enable the extension to communicate with the local server.
@@ -59,7 +59,7 @@ def create_manifest(extension_id: str) -> dict:
 
     manifest = {
         "name": "com.omnicontext.host",
-        "description": "OmniContext Native Host - Local memory storage service connector",
+        "description": "ContextDrop Native Host - Local memory storage service connector",
         "path": str(native_host_path),
         "type": "stdio",
         "allowed_origins": [
@@ -127,7 +127,7 @@ def print_windows_instructions(extension_id: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Install OmniContext Native Messaging Host"
+        description="Install ContextDrop Native Messaging Host"
     )
     parser.add_argument(
         '--extension-id',
@@ -137,7 +137,7 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Installing OmniContext Native Host for extension: {args.extension_id}")
+    print(f"Installing ContextDrop Native Host for extension: {args.extension_id}")
     print(f"Native host script: {get_native_host_path()}")
     print()
 

@@ -1,4 +1,4 @@
-# OmniContext 开发规范
+# ContextDrop 开发规范
 
 > 倒排式记录，最新记录在最上方。只增不减。
 

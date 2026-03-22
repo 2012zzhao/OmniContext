@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OmniContext Native Messaging Host
+ContextDrop Native Messaging Host
 
 This script acts as a bridge between the Chrome extension and the local HTTP server.
 It receives messages from the extension via stdin (Native Messaging protocol)
@@ -194,7 +194,7 @@ def handle_message(message: Dict[str, Any]) -> Dict[str, Any]:
 def main():
     """Main loop - process messages from Chrome extension."""
     # Log to stderr (visible in browser's console when debugging)
-    print("[OmniContext Native Host] Starting...", file=sys.stderr)
+    print("[ContextDrop Native Host] Starting...", file=sys.stderr)
 
     while True:
         try:
@@ -212,9 +212,9 @@ def main():
         except Exception as e:
             # Send error response
             send_message({"error": str(e), "success": False})
-            print(f"[OmniContext Native Host] Error: {e}", file=sys.stderr)
+            print(f"[ContextDrop Native Host] Error: {e}", file=sys.stderr)
 
-    print("[OmniContext Native Host] Exiting...", file=sys.stderr)
+    print("[ContextDrop Native Host] Exiting...", file=sys.stderr)
 
 
 if __name__ == '__main__':

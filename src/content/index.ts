@@ -6,7 +6,7 @@ import type { Platform, Session, Message } from '../types';
 const DEBUG = true;  // Enable verbose logging for DeepSeek debugging
 
 function log(...args: any[]) {
-  if (DEBUG) console.log('[OmniContext]', ...args);
+  if (DEBUG) console.log('[ContextDrop]', ...args);
 }
 
 let currentPlatform: Platform | null = null;
@@ -50,16 +50,16 @@ function init() {
     // DeepSeek / Doubao 专用调试
     // 启用自动调试日志以帮助诊断问题
     if (currentPlatform === 'deepseek') {
-      console.log('[OmniContext] === DeepSeek Debug Start ===');
-      console.log('[OmniContext] URL:', url);
+      console.log('[ContextDrop] === DeepSeek Debug Start ===');
+      console.log('[ContextDrop] URL:', url);
       setTimeout(() => {
         debugDeepSeekPage();
       }, 2000);
     }
 
     if (currentPlatform === 'doubao') {
-      console.log('[OmniContext] === Doubao Debug Start ===');
-      console.log('[OmniContext] URL:', url);
+      console.log('[ContextDrop] === Doubao Debug Start ===');
+      console.log('[ContextDrop] URL:', url);
       setTimeout(() => {
         debugDoubaoPage();
       }, 3000); // 稍长延迟确保页面完全加载
@@ -85,25 +85,25 @@ function init() {
 
     startCapturing();
   } catch (err) {
-    console.error('[OmniContext] Init failed:', err);
+    console.error('[ContextDrop] Init failed:', err);
   }
 }
 
 // DeepSeek 专用调试函数
 function debugDeepSeekPage() {
-  console.log('[OmniContext] === DeepSeek DOM Analysis ===');
+  console.log('[ContextDrop] === DeepSeek DOM Analysis ===');
 
   // 1. 检查主要容器
   const mainSelectors = ['main', '[class*="main"]', '[class*="chat"]', '[class*="conversation"]', '[class*="ds-scroll-area"]'];
   for (const sel of mainSelectors) {
     const els = document.querySelectorAll(sel);
     if (els.length > 0) {
-      console.log(`[OmniContext] Found ${els.length} elements with: ${sel}`);
+      console.log(`[ContextDrop] Found ${els.length} elements with: ${sel}`);
     }
   }
 
   // 2. 检查消息元素
-  console.log('[OmniContext] --- Looking for message elements ---');
+  console.log('[ContextDrop] --- Looking for message elements ---');
   const allDivs = document.querySelectorAll('div');
   const candidates: Element[] = [];
 
@@ -125,26 +125,26 @@ function debugDeepSeekPage() {
     }
   });
 
-  console.log(`[OmniContext] Found ${candidates.length} potential message elements`);
+  console.log(`[ContextDrop] Found ${candidates.length} potential message elements`);
   candidates.slice(0, 5).forEach((el, i) => {
-    console.log(`[OmniContext] [${i}] class="${el.className}"`);
-    console.log(`[OmniContext]     text="${el.textContent?.slice(0, 100)}..."`);
+    console.log(`[ContextDrop] [${i}] class="${el.className}"`);
+    console.log(`[ContextDrop]     text="${el.textContent?.slice(0, 100)}..."`);
   });
 
   // 3. 检查侧边栏
-  console.log('[OmniContext] --- Looking for sidebar ---');
+  console.log('[ContextDrop] --- Looking for sidebar ---');
   const sidebarSelectors = ['nav', 'aside', '[class*="sidebar"]', '[class*="history"]', '[class*="session"]'];
   for (const sel of sidebarSelectors) {
     const el = document.querySelector(sel);
     if (el) {
-      console.log(`[OmniContext] Sidebar found with: ${sel}`);
-      console.log(`[OmniContext]   classes: ${el.className}`);
-      console.log(`[OmniContext]   children: ${el.children.length}`);
+      console.log(`[ContextDrop] Sidebar found with: ${sel}`);
+      console.log(`[ContextDrop]   classes: ${el.className}`);
+      console.log(`[ContextDrop]   children: ${el.children.length}`);
     }
   }
 
   // 4. 输出所有 ds- 开头的 class
-  console.log('[OmniContext] --- ds- prefixed classes ---');
+  console.log('[ContextDrop] --- ds- prefixed classes ---');
   const dsElements = document.querySelectorAll('[class*="ds-"]');
   const dsClasses = new Set<string>();
   dsElements.forEach(el => {
@@ -153,34 +153,34 @@ function debugDeepSeekPage() {
       if (c.startsWith('ds-')) dsClasses.add(c);
     });
   });
-  console.log('[OmniContext] ds- classes:', Array.from(dsClasses).slice(0, 20));
+  console.log('[ContextDrop] ds- classes:', Array.from(dsClasses).slice(0, 20));
 
   // 5. 尝试提取消息
-  console.log('[OmniContext] --- Trying message extraction ---');
+  console.log('[ContextDrop] --- Trying message extraction ---');
   try {
     const extractor = createMessageExtractor('deepseek');
     const title = extractor.extractTitle();
     const messages = extractor.extractMessages();
-    console.log(`[OmniContext] Title: "${title}"`);
-    console.log(`[OmniContext] Messages: ${messages.length}`);
+    console.log(`[ContextDrop] Title: "${title}"`);
+    console.log(`[ContextDrop] Messages: ${messages.length}`);
     if (messages.length > 0) {
       messages.slice(0, 3).forEach((m, i) => {
-        console.log(`[OmniContext] [${i}] ${m.role}: "${m.content.slice(0, 50)}..."`);
+        console.log(`[ContextDrop] [${i}] ${m.role}: "${m.content.slice(0, 50)}..."`);
       });
     }
   } catch (e) {
-    console.error('[OmniContext] Extraction error:', e);
+    console.error('[ContextDrop] Extraction error:', e);
   }
 
-  console.log('[OmniContext] === DeepSeek Debug End ===');
+  console.log('[ContextDrop] === DeepSeek Debug End ===');
 }
 
 // 豆包专用调试函数
 function debugDoubaoPage() {
-  console.log('[OmniContext] === Doubao DOM Analysis ===');
+  console.log('[ContextDrop] === Doubao DOM Analysis ===');
 
   // 1. 检查消息块选择器（扩展列表）
-  console.log('[OmniContext] --- Step 1: Checking message selectors ---');
+  console.log('[ContextDrop] --- Step 1: Checking message selectors ---');
   const selectors = [
     '[class*="message-block-container"]',
     '[class*="message-block"]',
@@ -199,16 +199,16 @@ function debugDoubaoPage() {
   for (const sel of selectors) {
     const els = document.querySelectorAll(sel);
     if (els.length > 0) {
-      console.log(`[OmniContext] ✓ ${sel} -> ${els.length} elements`);
+      console.log(`[ContextDrop] ✓ ${sel} -> ${els.length} elements`);
       // Show first element details
       if (els[0]) {
-        console.log(`[OmniContext]   First element class: "${els[0].className}"`);
+        console.log(`[ContextDrop]   First element class: "${els[0].className}"`);
       }
     }
   }
 
   // 2. 检查用户消息标识（扩展列表）
-  console.log('[OmniContext] --- Step 2: Checking user message indicators ---');
+  console.log('[ContextDrop] --- Step 2: Checking user message indicators ---');
   const userIndicators = [
     { name: 'bg-s-color-bg-trans', selector: '[class*="bg-s-color-bg-trans"]' },
     { name: 'data-role="user"', selector: '[data-role="user"]' },
@@ -219,28 +219,28 @@ function debugDoubaoPage() {
 
   for (const indicator of userIndicators) {
     const els = document.querySelectorAll(indicator.selector);
-    console.log(`[OmniContext] ${indicator.name}: ${els.length} elements`);
+    console.log(`[ContextDrop] ${indicator.name}: ${els.length} elements`);
   }
 
   // 3. 分析页面主结构
-  console.log('[OmniContext] --- Step 3: Analyzing page structure ---');
+  console.log('[ContextDrop] --- Step 3: Analyzing page structure ---');
   const main = document.querySelector('main');
-  console.log(`[OmniContext] Main element: ${main ? 'found' : 'not found'}`);
+  console.log(`[ContextDrop] Main element: ${main ? 'found' : 'not found'}`);
   if (main) {
-    console.log(`[OmniContext] Main children: ${main.children.length}`);
+    console.log(`[ContextDrop] Main children: ${main.children.length}`);
     // Try to find message containers
     const allDivs = main.querySelectorAll('div');
-    console.log(`[OmniContext] Total divs in main: ${allDivs.length}`);
+    console.log(`[ContextDrop] Total divs in main: ${allDivs.length}`);
 
     // Look for scrollable containers
     const scrollContainers = main.querySelectorAll('[class*="scroll"], [style*="overflow"]');
-    console.log(`[OmniContext] Scroll containers in main: ${scrollContainers.length}`);
+    console.log(`[ContextDrop] Scroll containers in main: ${scrollContainers.length}`);
   }
 
   // 4. 分析消息块结构（如果找到）
-  console.log('[OmniContext] --- Step 4: Analyzing message blocks ---');
+  console.log('[ContextDrop] --- Step 4: Analyzing message blocks ---');
   const messageBlocks = document.querySelectorAll('[class*="message-block-container"], [class*="message-item"], [data-index]');
-  console.log(`[OmniContext] Found ${messageBlocks.length} potential message blocks`);
+  console.log(`[ContextDrop] Found ${messageBlocks.length} potential message blocks`);
 
   if (messageBlocks.length > 0) {
     messageBlocks.forEach((block, i) => {
@@ -250,14 +250,14 @@ function debugDoubaoPage() {
         const hasTransBg = !!block.querySelector('[class*="bg-s-color-bg-trans"]');
         const hasAvatar = !!block.querySelector('[class*="avatar"], img');
         const hasImg = !!block.querySelector('img');
-        console.log(`[OmniContext] [${i}] Text: "${text}..."`);
-        console.log(`[OmniContext]      Class: "${classes?.slice(0, 60)}"`);
-        console.log(`[OmniContext]      transBg=${hasTransBg}, avatar=${hasAvatar}, img=${hasImg}`);
+        console.log(`[ContextDrop] [${i}] Text: "${text}..."`);
+        console.log(`[ContextDrop]      Class: "${classes?.slice(0, 60)}"`);
+        console.log(`[ContextDrop]      transBg=${hasTransBg}, avatar=${hasAvatar}, img=${hasImg}`);
       }
     });
   } else {
     // 如果没有找到消息块，输出一些HTML帮助调试
-    console.log('[OmniContext] ⚠️ No message blocks found. Dumping main HTML:');
+    console.log('[ContextDrop] ⚠️ No message blocks found. Dumping main HTML:');
     if (main) {
       console.log(main.innerHTML.slice(0, 2000));
     } else {
@@ -266,25 +266,25 @@ function debugDoubaoPage() {
   }
 
   // 5. 尝试提取消息
-  console.log('[OmniContext] --- Step 5: Trying message extraction ---');
+  console.log('[ContextDrop] --- Step 5: Trying message extraction ---');
   try {
     const extractor = createMessageExtractor('doubao');
     const title = extractor.extractTitle();
     const messages = extractor.extractMessages();
-    console.log(`[OmniContext] Title: "${title}"`);
-    console.log(`[OmniContext] Messages extracted: ${messages.length}`);
+    console.log(`[ContextDrop] Title: "${title}"`);
+    console.log(`[ContextDrop] Messages extracted: ${messages.length}`);
     if (messages.length > 0) {
       messages.slice(0, 5).forEach((m, i) => {
-        console.log(`[OmniContext] [${i}] ${m.role}: "${m.content.slice(0, 60)}..."`);
+        console.log(`[ContextDrop] [${i}] ${m.role}: "${m.content.slice(0, 60)}..."`);
       });
     } else {
-      console.warn('[OmniContext] ⚠️ No messages extracted - detection may need update');
+      console.warn('[ContextDrop] ⚠️ No messages extracted - detection may need update');
     }
   } catch (e) {
-    console.error('[OmniContext] Extraction error:', e);
+    console.error('[ContextDrop] Extraction error:', e);
   }
 
-  console.log('[OmniContext] === Doubao Debug End ===');
+  console.log('[ContextDrop] === Doubao Debug End ===');
 }
 
 // Make debug functions available globally for manual console use
@@ -362,7 +362,7 @@ function tryCapture() {
       saveSessionDebounced(messages);
     }
   } catch (err) {
-    console.error('[OmniContext] tryCapture error:', err);
+    console.error('[ContextDrop] tryCapture error:', err);
   }
 }
 
@@ -419,10 +419,10 @@ async function doSave(messages: Message[]) {
     };
 
     await sessionStorage.saveSessionOptimized(session);
-    console.log('[OmniContext] ✓ Saved:', title, `(${messages.length}条消息)`);
+    console.log('[ContextDrop] ✓ Saved:', title, `(${messages.length}条消息)`);
   } catch (err: any) {
     if (!err?.message?.includes('Extension context invalidated')) {
-      console.error('[OmniContext] Save failed:', err);
+      console.error('[ContextDrop] Save failed:', err);
     }
   }
 }
@@ -504,7 +504,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // 处理自动捕获开关
   if (message.type === 'AUTO_CAPTURE_TOGGLE') {
     isAutoCaptureEnabled = message.enabled as boolean;
-    console.log('[OmniContext] Auto capture toggled:', isAutoCaptureEnabled);
+    console.log('[ContextDrop] Auto capture toggled:', isAutoCaptureEnabled);
     sendResponse({ success: true, enabled: isAutoCaptureEnabled });
     return true;
   }
@@ -536,24 +536,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ sidebarVisible });
     } else if (currentPlatform === 'deepseek') {
       // 检查 DeepSeek 会话列表是否可见
-      console.log('[OmniContext] DeepSeek sidebar check starting...');
-      console.log('[OmniContext] currentPlatform:', currentPlatform);
+      console.log('[ContextDrop] DeepSeek sidebar check starting...');
+      console.log('[ContextDrop] currentPlatform:', currentPlatform);
 
       // 方法1: 检查会话链接
       const sessionLinks1 = document.querySelectorAll('a[href*="/chat/s/"]');
       const sessionLinks2 = document.querySelectorAll('a[href*="/a/chat/"]');
       const sessionLinks3 = document.querySelectorAll('a[href^="/a/"]');
 
-      console.log(`[OmniContext] Method 1 (href*="/chat/s/"): ${sessionLinks1.length} links`);
-      console.log(`[OmniContext] Method 2 (href*="/a/chat/"): ${sessionLinks2.length} links`);
-      console.log(`[OmniContext] Method 3 (href^="/a/"): ${sessionLinks3.length} links`);
+      console.log(`[ContextDrop] Method 1 (href*="/chat/s/"): ${sessionLinks1.length} links`);
+      console.log(`[ContextDrop] Method 2 (href*="/a/chat/"): ${sessionLinks2.length} links`);
+      console.log(`[ContextDrop] Method 3 (href^="/a/"): ${sessionLinks3.length} links`);
 
       // 方法2: 检查侧边栏容器
       const sidebar = document.querySelector('aside') ||
                       document.querySelector('[class*="sidebar"]') ||
                       document.querySelector('[class*="nav"]') ||
                       document.querySelector('[class*="history"]');
-      console.log('[OmniContext] Sidebar element:', sidebar ? sidebar.className : 'not found');
+      console.log('[ContextDrop] Sidebar element:', sidebar ? sidebar.className : 'not found');
 
       // 方法3: 检查所有可能的会话项
       const allLinks = document.querySelectorAll('a');
@@ -564,7 +564,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           chatLinks++;
         }
       });
-      console.log(`[OmniContext] Total links with 'chat' in href: ${chatLinks}`);
+      console.log(`[ContextDrop] Total links with 'chat' in href: ${chatLinks}`);
 
       // 综合判断：任何一种方法检测到会话项就认为侧边栏已打开
       let visibleCount = 0;
@@ -581,19 +581,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       // 或者侧边栏容器存在且可见
       const sidebarVisible = visibleCount > 0 || (sidebar !== null && sidebar.getBoundingClientRect().width > 0);
 
-      console.log(`[OmniContext] DeepSeek sidebar result: ${visibleCount} visible links, sidebar: ${!!sidebar}, final: ${sidebarVisible}`);
+      console.log(`[ContextDrop] DeepSeek sidebar result: ${visibleCount} visible links, sidebar: ${!!sidebar}, final: ${sidebarVisible}`);
       sendResponse({ sidebarVisible: true }); // 暂时总是返回 true，让用户能继续操作
     } else if (currentPlatform === 'kimi') {
       // Kimi: 检查会话列表是否可见
-      console.log('[OmniContext] Kimi sidebar check starting...');
+      console.log('[ContextDrop] Kimi sidebar check starting...');
 
       // 检查 .chat-info-item 链接
       const sessionLinks = document.querySelectorAll('.chat-info-item a[href*="/chat/"]');
-      console.log(`[OmniContext] Kimi: Found ${sessionLinks.length} session links`);
+      console.log(`[ContextDrop] Kimi: Found ${sessionLinks.length} session links`);
 
       // 检查侧边栏
       const sidebar = document.querySelector('.sidebar');
-      console.log('[OmniContext] Kimi sidebar:', sidebar ? 'found' : 'not found');
+      console.log('[ContextDrop] Kimi sidebar:', sidebar ? 'found' : 'not found');
 
       // 检查可见的会话链接
       let visibleCount = 0;
@@ -605,19 +605,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       });
 
       const sidebarVisible = visibleCount > 0 || (sidebar !== null && sidebar.getBoundingClientRect().width > 0);
-      console.log(`[OmniContext] Kimi sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
+      console.log(`[ContextDrop] Kimi sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
       sendResponse({ sidebarVisible: true }); // 暂时总是返回 true
     } else if (currentPlatform === 'gemini') {
       // Gemini: 检查会话列表是否可见
-      console.log('[OmniContext] Gemini sidebar check starting...');
+      console.log('[ContextDrop] Gemini sidebar check starting...');
 
       // 检查 /app/ 链接
       const sessionLinks = document.querySelectorAll('a[href^="/app/"]');
-      console.log(`[OmniContext] Gemini: Found ${sessionLinks.length} session links`);
+      console.log(`[ContextDrop] Gemini: Found ${sessionLinks.length} session links`);
 
       // 检查侧边栏
       const sidebar = document.querySelector('nav, aside, [class*="sidebar"], [class*="nav"]');
-      console.log('[OmniContext] Gemini sidebar:', sidebar ? 'found' : 'not found');
+      console.log('[ContextDrop] Gemini sidebar:', sidebar ? 'found' : 'not found');
 
       // 检查可见的会话链接
       let visibleCount = 0;
@@ -629,7 +629,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       });
 
       const sidebarVisible = visibleCount > 0 || (sidebar !== null && sidebar.getBoundingClientRect().width > 0);
-      console.log(`[OmniContext] Gemini sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
+      console.log(`[ContextDrop] Gemini sidebar result: ${visibleCount} visible links, final: ${sidebarVisible}`);
       sendResponse({ sidebarVisible: true }); // 暂时总是返回 true
     } else {
       // 其他平台默认返回 true

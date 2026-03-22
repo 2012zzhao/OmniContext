@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "omnicontext"
+name = "contextdrop"
 version = "0.1.0"
-description = "OmniContext Python SDK - 跨平台 AI 对话上下文管理"
+description = "ContextDrop Python SDK - 跨平台 AI 对话上下文管理"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "OmniContext Team"}
+    {name = "ContextDrop Team"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

@@ -1,39 +1,47 @@
-# OmniContext
+# ContextDrop
 
-Seamlessly share chat context across different AI assistants with conversation context auto-captures and one-click injection.
+Seamlessly share chat context across different AI assistants (including Doubao and more) with conversation auto-captures and one-click context injection.
 
-在不同AI助手间无缝共享对话上下文，支持豆包、ChatGPT、Claude、Gemini、DeepSeek、元宝、Kimi等主流AI平台。自动捕获聊天记录，一键注入上下文，让跨平台AI协作更连贯。
-
----
-
-## Features 功能特性
-
-- 🤖 **多平台支持** - 支持「豆包/ChatGPT/Claude/Gemini/DeepSeek/元宝/Kimi」等主流AI助手
-- 💾 **会话捕获** - 通过「自动捕获」和「批量捕获」可以扫描并提取AI助手的对话历史
-- 📋 **记忆注入** - 选择捕获的会话，可以将会话记忆一键复制给AI助手，快速恢复上下文
-- 🔒 **本地存储** - 数据仅存储在浏览器缓存或导出到本地，隐私安全有保障
-- 📤 **数据导出** - 支持导出记忆数据，再也不怕丢失AI小助手们的对话记录和宝贵记忆啦~
+在不同AI助手间无缝共享对话上下文，支持豆包、元宝、Claude等平台，自动捕获聊天记录，一键注入上下文，让AI协作更连贯。
 
 ---
 
-## Installation 安装启用
+## 功能特性
 
-### 途径1：直接下载安装（推荐）
+- 🤖 **多平台支持** - 豆包、元宝、Claude 等主流AI助手
+- 💾 **自动捕获** - 访问平台时自动记录对话历史
+- 📋 **一键注入** - 选择历史会话，格式化复制到剪贴板
+- 🔒 **本地存储** - 数据仅存储在浏览器本地，隐私优先
+- 📤 **数据导出** - 支持JSON格式备份
 
-1. 打开[GitHub Releases](https://github.com/2012zzhao/OmniContext/releases/latest)页面，下载最新版安装包`OmniContext-vX.X.X.zip`
-2. 解压下载内容。打开Chrome浏览器，跳转到插件管理页面：`chrome://extensions/`
-3. 开启右上角的「开发者模式」开关，点击「加载已解压的扩展程序」
-4. 选择解压后的文件夹，即可实现安装
+---
 
-赶紧使用起来吧！
+## 安装使用
+
+### 途径1：直接安装使用（推荐）
+
+不需要安装 Node.js，直接下载使用：
+
+```bash
+git clone https://github.com/Jackie2049/ContextDrop.git
+```
+
+然后在 Chrome 中加载扩展：
+
+1. 打开 Chrome，访问 `chrome://extensions/`
+2. 开启右上角的「开发者模式」
+3. 点击「加载已解压的扩展程序」
+4. 选择 `ContextDrop/product` 文件夹
+
+即可开始使用！
 
 ### 途径2：基于源码自行构建
 
 如果你想修改代码或参与开发：
 
 ```bash
-git clone https://github.com/2012zzhao/OmniContext.git
-cd OmniContext
+git clone https://github.com/Jackie2049/ContextDrop.git
+cd ContextDrop
 npm install
 npm run build
 ```
@@ -46,7 +54,7 @@ npm run build
 
 ### 1. 自动捕获对话
 
-安装扩展后，在支持的 AI 平台（豆包、ChatGPT、Claude、Gemini、DeepSeek、元宝、Kimi）正常聊天即可。
+安装扩展后，在支持的 AI 平台（豆包、元宝、Claude）正常聊天即可。
 
 - 扩展会自动检测页面并捕获对话内容
 - 数据仅存储在浏览器本地，不会上传到任何服务器
@@ -56,21 +64,20 @@ npm run build
 
 点击浏览器工具栏的 🧠 图标打开扩展弹窗：
 
-- **按平台分组**：会话按平台分组显示（豆包、ChatGPT、Claude、Gemini、DeepSeek、元宝、Kimi）
+- **按平台分组**：会话按豆包、元宝、Claude 分组显示
 - **会话标题**：显示从页面抓取的会话标题（可编辑）
 - **消息数量**：显示每个会话的消息条数
 - **最后更新时间**：显示会话最后更新时间
 
 ### 3. 注入上下文到其他 AI 助手
 
-1. 在新平台（或新会话）打开 OmniContext 弹窗
+1. 在新平台（或新会话）打开 ContextDrop 弹窗
 2. 找到之前保存的会话
 3. 点击会话右侧的 📋 「复制」按钮
 4. 格式化后的上下文会自动复制到剪贴板
 5. 粘贴到当前 AI 助手的输入框即可
 
 复制的内容格式示例：
-
 ```
 【上下文引用】
 以下是我之前在豆包的对话记录：
@@ -102,7 +109,6 @@ npm run build
 点击 📤 「导出」按钮，可以将所有会话数据导出为 JSON 文件，用于备份或迁移。
 
 导出的文件格式：
-
 ```json
 [
   {
@@ -124,23 +130,20 @@ npm run build
 **Q: 扩展无法捕获对话？**
 
 A: 确保：
-
 1. 扩展已正确加载（图标显示在工具栏）
-2. 你在支持的平台上（豆包、ChatGPT、Claude、Gemini、DeepSeek、元宝、Kimi）
+2. 你在支持的平台上（豆包、元宝、Claude）
 3. 页面已完全加载（等待几秒钟）
 4. 已经发送了至少一条消息
 
 **Q: 复制的内容粘贴后格式错乱？**
 
 A: 某些 AI 助手可能不支持 Markdown 格式。如果粘贴后格式不对，可以：
-
 1. 手动删除 Markdown 标记
 2. 或只复制需要的对话片段
 
 **Q: 数据会丢失吗？**
 
 A: 数据存储在浏览器本地（IndexedDB）。
-
 - 卸载扩展会丢失数据
 - 清除浏览器数据会丢失数据
 - 建议定期点击「导出」备份重要对话
@@ -150,7 +153,7 @@ A: 数据存储在浏览器本地（IndexedDB）。
 ## 项目结构
 
 ```
-OmniContext/
+ContextDrop/
 ├── src/                     # Chrome 扩展核心源代码
 │   ├── background/          # 后台服务 (Service Worker)
 │   ├── content/             # 内容脚本 (页面注入)
@@ -203,16 +206,14 @@ AI平台页面 → Content Script → Extractor → Storage → Popup显示 → 
 
 ### 核心模块
 
-
-| 模块             | 职责                       |
-| -------------- | ------------------------ |
-| Content Script | 页面DOM监听、消息提取、自动保存        |
-| Background     | 扩展生命周期管理、图标状态更新          |
-| Popup          | 用户界面、会话管理、操作交互           |
-| Storage        | IndexedDB封装、Session CRUD |
-| Extractor      | 平台特定选择器、DOM解析            |
-| Formatter      | 格式化输出、剪贴板操作              |
-
+| 模块 | 职责 |
+|------|------|
+| Content Script | 页面DOM监听、消息提取、自动保存 |
+| Background | 扩展生命周期管理、图标状态更新 |
+| Popup | 用户界面、会话管理、操作交互 |
+| Storage | IndexedDB封装、Session CRUD |
+| Extractor | 平台特定选择器、DOM解析 |
+| Formatter | 格式化输出、剪贴板操作 |
 
 ---
 
@@ -258,24 +259,20 @@ npm run build
 
 ## 支持平台
 
-
-| 平台           | 状态  | 备注                |
-| ------------ | --- | ----------------- |
-| 豆包 (Doubao)  | ✅   | 完整支持CSS Modules解析 |
-| ChatGPT      | ✅   | 完整支持              |
-| Claude       | ✅   | 完整支持              |
-| Gemini       | ✅   | 完整支持              |
-| DeepSeek     | ✅   | 完整支持              |
-| 元宝 (Yuanbao) | ✅   | 完整支持              |
-| Kimi         | ✅   | 完整支持              |
-
+| 平台 | 状态 | 备注 |
+|------|------|------|
+| 豆包 (Doubao) | ✅ | 完整支持CSS Modules解析 |
+| 元宝 (Yuanbao) | ✅ | 完整支持 |
+| Claude | ✅ | 完整支持 |
+| DeepSeek | ✅ | 完整支持 |
+| Kimi | ✅ | 完整支持 |
+| Gemini | ✅ | 新增支持 |
 
 ---
 
 ## 数据模型
 
 ### Session
-
 ```typescript
 interface Session {
   id: string;              // 唯一标识
@@ -290,7 +287,6 @@ interface Session {
 ```
 
 ### Message
-
 ```typescript
 interface Message {
   id: string;

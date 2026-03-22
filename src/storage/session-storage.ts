@@ -57,7 +57,7 @@ export class SessionStorage {
   async getAllSessions(): Promise<Session[]> {
     const result = await chrome.storage.local.get(STORAGE_KEY);
     const sessions = (result[STORAGE_KEY] as Session[]) || [];
-    console.log('[OmniContext] getAllSessions from storage:', sessions.length);
+    console.log('[ContextDrop] getAllSessions from storage:', sessions.length);
     return sessions;
   }
 
@@ -109,12 +109,12 @@ export class SessionStorage {
    * Import sessions (add or replace based on mode)
    */
   async importSessions(sessions: Session[], mode: 'merge-keep' | 'merge-overwrite' | 'replace'): Promise<number> {
-    console.log('[OmniContext] importSessions called with:', sessions.length, 'mode:', mode);
+    console.log('[ContextDrop] importSessions called with:', sessions.length, 'mode:', mode);
 
     if (mode === 'replace') {
       await this.clearAllSessions();
       await chrome.storage.local.set({ [STORAGE_KEY]: sessions });
-      console.log('[OmniContext] Replaced with', sessions.length, 'sessions');
+      console.log('[ContextDrop] Replaced with', sessions.length, 'sessions');
       return sessions.length;
     }
 
@@ -135,7 +135,7 @@ export class SessionStorage {
 
     const finalSessions = Array.from(existingMap.values());
     await chrome.storage.local.set({ [STORAGE_KEY]: finalSessions });
-    console.log('[OmniContext] Final sessions count:', finalSessions.length);
+    console.log('[ContextDrop] Final sessions count:', finalSessions.length);
     return sessions.length;
   }
 }

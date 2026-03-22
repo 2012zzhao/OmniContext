@@ -1,4 +1,4 @@
-# OmniContext 产品设计文档
+# ContextDrop 产品设计文档
 
 > 倒排式记录，最新记录在最上方。只增不减。
 
@@ -118,7 +118,7 @@ Popup → chrome.tabs.sendMessage → Content Script
 ### UI 布局
 ```
 ┌─────────────────────────────────┐
-│  🧠 OmniContext                 │
+│  🧠 ContextDrop                 │
 │  ...会话列表...                  │
 ├─────────────────────────────────┤
 │ [📤 导出] [📥 导入] [🔄 刷新]    │
@@ -205,7 +205,7 @@ interface ExportData {
 #### 搜索入口
 ```
 ┌─────────────────────────────────┐
-│ 🧠 OmniContext          [⚙️]   │
+│ 🧠 ContextDrop          [⚙️]   │
 ├─────────────────────────────────┤
 │ [🔍 搜索会话...        ] [×]   │
 ├─────────────────────────────────┤
@@ -357,7 +357,7 @@ private extractClaudeAssistantContent(element: Element): string
 
 ## 2026-02-27 品牌与命名规范
 
-**摘要：** 项目正式命名为 OmniContext
+**摘要：** 项目正式命名为 ContextDrop
 
 **正文：**
 
@@ -375,7 +375,7 @@ Seamlessly share chat context across different AI assistants (including Doubao a
 ### 技术命名规范
 - 存储键名：`sessions`
 - Session ID：`{platform}-{timestamp}` 或 URL提取的ID
-- 控制台前缀：`[OmniContext]`
+- 控制台前缀：`[ContextDrop]`
 
 ---
 
@@ -391,7 +391,7 @@ Seamlessly share chat context across different AI assistants (including Doubao a
 ```
 
 ### 桌面部署
-- 目标路径：`C:\Users\73523\Desktop\OmniContext\`
+- 目标路径：`C:\Users\73523\Desktop\ContextDrop\`
 - 内容：dist/ 目录完整复制
 - Chrome加载：`chrome://extensions/` → 加载已解压的扩展程序
 

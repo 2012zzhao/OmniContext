@@ -1,4 +1,4 @@
-# OmniContext Server
+# ContextDrop Server
 
 本地服务，提供 HTTP API 和 Native Messaging 支持。
 

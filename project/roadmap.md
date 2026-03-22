@@ -1,4 +1,4 @@
-# OmniContext 产品路线图
+# ContextDrop 产品路线图
 
 > 倒排式记录，最新记录在最上方。只增不减。
 
@@ -205,7 +205,7 @@ sdk/python/
 **正文：**
 
 ### 功能定位
-OmniContext 成为连接 AI 助手和用户程序/Agent 的上下文管理中心：
+ContextDrop 成为连接 AI 助手和用户程序/Agent 的上下文管理中心：
 - **网页捕获**：主流 AI 助手（豆包、元宝、Claude、DeepSeek、Kimi）
 - **API 读写**：用户程序、Agent 通过 Python SDK / HTTP API 读写 memory
 
@@ -216,7 +216,7 @@ OmniContext 成为连接 AI 助手和用户程序/Agent 的上下文管理中心
 │ AI 助手网页  │ ────────────→ │             │ ────────────────→ │ 用户    │
 │ (豆包/Kimi等)│    (只写)     │             │                   │ (UI)   │
 └─────────────┘               │             │                   └─────────┘
-                              │ OmniContext │
+                              │ ContextDrop │
 ┌─────────────────┐ API 读/写  │  本地服务    │
 │ 用户程序/Agent  │ ←────────→ │  (SQLite)   │
 │ (Python SDK)   │            └─────────────┘
@@ -676,7 +676,7 @@ interface GraphEdge {
 
 ### 愿景
 
-让 OmniContext 成为跨平台 AI 协作的标准工具，实现「一次对话，处处可用」。
+让 ContextDrop 成为跨平台 AI 协作的标准工具，实现「一次对话，处处可用」。
 
 ### 发展阶段
 
@@ -846,7 +846,7 @@ interface SummaryOptions {
 
 ### 4.3 API 开放平台
 ```
-开发者可以通过 API 访问用户的 OmniContext 数据
+开发者可以通过 API 访问用户的 ContextDrop 数据
 （需用户授权）
 ```
 
@@ -942,7 +942,7 @@ interface SummaryOptions {
 ### 内容营销
 - 技术博客（实现细节、踩坑记录）
 - 视频教程（B站/YouTube）
-- 用户案例（如何使用 OmniContext 提升效率）
+- 用户案例（如何使用 ContextDrop 提升效率）
 
 ### 社区建设
 - GitHub Discussions（用户交流）

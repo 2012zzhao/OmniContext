@@ -47,7 +47,7 @@ async function sendNativeMessage(message: NativeMessage): Promise<NativeResponse
     try {
       chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, message, (response) => {
         if (chrome.runtime.lastError) {
-          console.warn('[OmniContext] Native messaging error:', chrome.runtime.lastError.message);
+          console.warn('[ContextDrop] Native messaging error:', chrome.runtime.lastError.message);
           nativeHostConnected = false;
           resolve({ success: false, error: chrome.runtime.lastError.message });
         } else {
@@ -56,7 +56,7 @@ async function sendNativeMessage(message: NativeMessage): Promise<NativeResponse
         }
       });
     } catch (error) {
-      console.error('[OmniContext] Failed to send native message:', error);
+      console.error('[ContextDrop] Failed to send native message:', error);
       resolve({ success: false, error: String(error) });
     }
   });
@@ -87,7 +87,7 @@ async function syncSessionToLocalServer(session: any): Promise<boolean> {
 // ========== Chrome 扩展事件 ==========
 
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('[OmniContext] Extension installed', details);
+  console.log('[ContextDrop] Extension installed', details);
 
   // Initialize storage
   chrome.storage.local.get('sessions', (result) => {
@@ -98,7 +98,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
   // Check local server status
   checkLocalServerStatus().then((status) => {
-    console.log('[OmniContext] Local server status:', status);
+    console.log('[ContextDrop] Local server status:', status);
     chrome.storage.local.set({ serverStatus: status });
   });
 });
@@ -110,7 +110,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // 异步同步到本地服务器
     if (request.session) {
       syncSessionToLocalServer(request.session).then((synced) => {
-        console.log('[OmniContext] Session synced to local server:', synced);
+        console.log('[ContextDrop] Session synced to local server:', synced);
       });
     }
     sendResponse({ success: true });
@@ -141,7 +141,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         platform: request.platform,
         tabId: sender.tab?.id || request.tabId || null,
       };
-      console.log('[OmniContext] Batch capture lock acquired:', batchCaptureState);
+      console.log('[ContextDrop] Batch capture lock acquired:', batchCaptureState);
       sendResponse({ success: true });
     }
     return true;
@@ -149,7 +149,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // 释放批量捕获锁
   if (request.type === 'BATCH_CAPTURE_RELEASE_LOCK') {
-    console.log('[OmniContext] Batch capture lock released:', batchCaptureState);
+    console.log('[ContextDrop] Batch capture lock released:', batchCaptureState);
     batchCaptureState = {
       isRunning: false,
       platform: null,
@@ -236,7 +236,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 监听标签页关闭，自动释放锁
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (batchCaptureState.isRunning && batchCaptureState.tabId === tabId) {
-    console.log('[OmniContext] Tab closed, releasing batch capture lock');
+    console.log('[ContextDrop] Tab closed, releasing batch capture lock');
     batchCaptureState = {
       isRunning: false,
       platform: null,

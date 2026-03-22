@@ -1,4 +1,4 @@
-# OmniContext 核心概念
+# ContextDrop 核心概念
 
 > 本文档定义项目核心术语，确保开发沟通一致。
 

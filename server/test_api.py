@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OmniContext Server 测试脚本
+ContextDrop Server 测试脚本
 
 测试 HTTP API 功能
 """

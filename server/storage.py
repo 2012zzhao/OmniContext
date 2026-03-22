@@ -1,5 +1,5 @@
 """
-OmniContext Server 存储层 - SQLite
+ContextDrop Server 存储层 - SQLite
 
 性能优化：
 - 使用连接池减少连接开销

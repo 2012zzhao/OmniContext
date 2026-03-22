@@ -113,7 +113,7 @@ export class BatchCapture {
         });
       }
 
-      console.log(`[OmniContext] Discovered ${this.discoveredSessions.length} sessions`);
+      console.log(`[ContextDrop] Discovered ${this.discoveredSessions.length} sessions`);
 
       // 检查取消
       if (this.checkCancelled(this.discoveredSessions.length)) return;
@@ -157,7 +157,7 @@ export class BatchCapture {
   setSelectedSessions(sessionIds: string[]): void {
     this.selectedSessionIds = new Set(sessionIds);
     this.waitingForSelection = false;
-    console.log(`[OmniContext] User selected ${sessionIds.length} sessions to capture`);
+    console.log(`[ContextDrop] User selected ${sessionIds.length} sessions to capture`);
   }
 
   /**
@@ -165,7 +165,7 @@ export class BatchCapture {
    */
   private async captureSelectedSessions(sessionElements: Element[]): Promise<void> {
     const total = this.selectedSessionIds.size;
-    console.log(`[OmniContext] Starting capture of ${total} selected sessions out of ${sessionElements.length} total elements`);
+    console.log(`[ContextDrop] Starting capture of ${total} selected sessions out of ${sessionElements.length} total elements`);
 
     if (total === 0) {
       this.reportProgress({
@@ -211,17 +211,17 @@ export class BatchCapture {
 
       // 如果这个会话不在用户选择列表中，跳过
       if (!preSessionId || !this.selectedSessionIds.has(preSessionId)) {
-        // console.log(`[OmniContext] Skipping session (not selected): ${title}`);
+        // console.log(`[ContextDrop] Skipping session (not selected): ${title}`);
         continue;
       }
 
       // 去重检查
       if (this.processedSessions.has(preSessionId)) {
-        console.log(`[OmniContext] Skipping duplicate session: ${title}`);
+        console.log(`[ContextDrop] Skipping duplicate session: ${title}`);
         continue;
       }
 
-      console.log(`[OmniContext] Processing session ${captured + 1}/${total}: ${title}`);
+      console.log(`[ContextDrop] Processing session ${captured + 1}/${total}: ${title}`);
 
       const sessionStart = Date.now();
 
@@ -308,7 +308,7 @@ export class BatchCapture {
         await this.sleep(300);
 
       } catch (err) {
-        console.error(`[OmniContext] Failed to capture session: ${title}`, err);
+        console.error(`[ContextDrop] Failed to capture session: ${title}`, err);
       }
     }
 
@@ -334,7 +334,7 @@ export class BatchCapture {
   }
 
   cancel(): void {
-    console.log('[OmniContext] Cancel called - stopping batch capture');
+    console.log('[ContextDrop] Cancel called - stopping batch capture');
     this.isCancelled = true;
     this.waitingForSelection = false; // 跳出等待选择循环
     this.isPaused = false;
@@ -416,7 +416,7 @@ export class BatchCapture {
     container.id = 'omnicontext-batch-progress';
     container.innerHTML = `
       <div class="oc-progress-header">
-        <span>📦 OmniContext 批量捕获</span>
+        <span>📦 ContextDrop 批量捕获</span>
         <div class="oc-progress-header-btns">
           <button class="oc-progress-minimize" title="最小化">−</button>
           <button class="oc-progress-close" title="关闭">×</button>
@@ -863,17 +863,17 @@ export class BatchCapture {
       const itemName = element.querySelector('.yb-recent-conv-list__item-name');
       if (itemName) {
         const sessionTitle = itemName.textContent;
-        console.log('[OmniContext] Clicking Yuanbao session:', sessionTitle);
+        console.log('[ContextDrop] Clicking Yuanbao session:', sessionTitle);
         (itemName as HTMLElement).click();
       } else {
-        console.log('[OmniContext] Clicking Yuanbao session element directly');
+        console.log('[ContextDrop] Clicking Yuanbao session element directly');
         (element as HTMLElement).click();
       }
     } else if (this.platform === 'deepseek') {
       // DeepSeek: 会话是链接，点击前记录当前 URL
       const currentUrl = window.location.href;
       const href = element.getAttribute('href') || '';
-      console.log('[OmniContext] DeepSeek: Clicking session with href:', href);
+      console.log('[ContextDrop] DeepSeek: Clicking session with href:', href);
 
       // 如果是链接，直接点击即可
       (element as HTMLElement).click();
@@ -883,20 +883,20 @@ export class BatchCapture {
       for (let i = 0; i < 20; i++) {
         await this.sleep(200);
         if (window.location.href !== currentUrl) {
-          console.log('[OmniContext] DeepSeek: URL changed to', window.location.href);
+          console.log('[ContextDrop] DeepSeek: URL changed to', window.location.href);
           urlChanged = true;
           break;
         }
       }
 
       if (!urlChanged) {
-        console.warn('[OmniContext] DeepSeek: URL did not change after click');
+        console.warn('[ContextDrop] DeepSeek: URL did not change after click');
       }
     } else if (this.platform === 'kimi') {
       // Kimi: 会话是链接，点击后等待 URL 变化
       const currentUrl = window.location.href;
       const href = element.getAttribute('href') || '';
-      console.log('[OmniContext] Kimi: Clicking session with href:', href);
+      console.log('[ContextDrop] Kimi: Clicking session with href:', href);
 
       // 直接点击链接
       (element as HTMLElement).click();
@@ -905,7 +905,7 @@ export class BatchCapture {
       for (let i = 0; i < 20; i++) {
         await this.sleep(200);
         if (window.location.href !== currentUrl) {
-          console.log('[OmniContext] Kimi: URL changed to', window.location.href);
+          console.log('[ContextDrop] Kimi: URL changed to', window.location.href);
           break;
         }
       }
@@ -913,7 +913,7 @@ export class BatchCapture {
       // Gemini: 会话是链接，点击后等待 URL 变化
       const currentUrl = window.location.href;
       const href = element.getAttribute('href') || '';
-      console.log('[OmniContext] Gemini: Clicking session with href:', href);
+      console.log('[ContextDrop] Gemini: Clicking session with href:', href);
 
       // 直接点击链接
       (element as HTMLElement).click();
@@ -922,7 +922,7 @@ export class BatchCapture {
       for (let i = 0; i < 20; i++) {
         await this.sleep(200);
         if (window.location.href !== currentUrl) {
-          console.log('[OmniContext] Gemini: URL changed to', window.location.href);
+          console.log('[ContextDrop] Gemini: URL changed to', window.location.href);
           break;
         }
       }
@@ -930,7 +930,7 @@ export class BatchCapture {
       // ChatGPT: 会话是链接，点击后等待 URL 变化
       const currentUrl = window.location.href;
       const href = element.getAttribute('href') || '';
-      console.log('[OmniContext] ChatGPT: Clicking session with href:', href);
+      console.log('[ContextDrop] ChatGPT: Clicking session with href:', href);
 
       // 直接点击链接
       (element as HTMLElement).click();
@@ -939,7 +939,7 @@ export class BatchCapture {
       for (let i = 0; i < 20; i++) {
         await this.sleep(200);
         if (window.location.href !== currentUrl) {
-          console.log('[OmniContext] ChatGPT: URL changed to', window.location.href);
+          console.log('[ContextDrop] ChatGPT: URL changed to', window.location.href);
           break;
         }
       }
@@ -968,7 +968,7 @@ export class BatchCapture {
       while (attempts < maxAttempts) {
         const messages = document.querySelectorAll('.agent-chat__list__item');
         if (messages.length > 0) {
-          console.log('[OmniContext] Yuanbao messages loaded:', messages.length);
+          console.log('[ContextDrop] Yuanbao messages loaded:', messages.length);
           break;
         }
         await this.sleep(500);
@@ -979,7 +979,7 @@ export class BatchCapture {
       const activeItem = document.querySelector('.yb-recent-conv-list__item.active [data-item-id]');
       if (activeItem) {
         const activeId = activeItem.getAttribute('data-item-id');
-        console.log('[OmniContext] Current active sidebar item:', activeId);
+        console.log('[ContextDrop] Current active sidebar item:', activeId);
       }
 
       // 额外等待确保内容完全加载
@@ -994,7 +994,7 @@ export class BatchCapture {
       while (attempts < maxAttempts) {
         const messages = document.querySelectorAll('[class*="ds-message"]');
         if (messages.length > 0) {
-          console.log('[OmniContext] DeepSeek messages loaded:', messages.length);
+          console.log('[ContextDrop] DeepSeek messages loaded:', messages.length);
           break;
         }
         await this.sleep(500);
@@ -1014,7 +1014,7 @@ export class BatchCapture {
         const userMessages = document.querySelectorAll('.chat-content-item-user');
         const assistantMessages = document.querySelectorAll('.chat-content-item-assistant');
         if (userMessages.length > 0 || assistantMessages.length > 0) {
-          console.log(`[OmniContext] Kimi messages loaded: ${userMessages.length} user, ${assistantMessages.length} assistant`);
+          console.log(`[ContextDrop] Kimi messages loaded: ${userMessages.length} user, ${assistantMessages.length} assistant`);
           break;
         }
         await this.sleep(500);
@@ -1034,7 +1034,7 @@ export class BatchCapture {
         const userMessages = document.querySelectorAll('[class*="user-query"]');
         const assistantMessages = document.querySelectorAll('[class*="response-container"], [class*="model-response"]');
         if (userMessages.length > 0 || assistantMessages.length > 0) {
-          console.log(`[OmniContext] Gemini messages loaded: ${userMessages.length} user, ${assistantMessages.length} assistant`);
+          console.log(`[ContextDrop] Gemini messages loaded: ${userMessages.length} user, ${assistantMessages.length} assistant`);
           break;
         }
         await this.sleep(500);
@@ -1045,7 +1045,7 @@ export class BatchCapture {
       await this.sleep(800);
     } else if (this.platform === 'chatgpt') {
       // ChatGPT: 等待消息元素加载
-      console.log('[OmniContext] ChatGPT: Waiting for session to load...');
+      console.log('[ContextDrop] ChatGPT: Waiting for session to load...');
       await this.sleep(800); // 初始等待，给页面更多时间加载
 
       // 首先等待主容器出现
@@ -1055,7 +1055,7 @@ export class BatchCapture {
         const chatContainer = document.querySelector('[class*="conversation-container"]');
         const article = document.querySelector('article');
         if (main || chatContainer || article) {
-          console.log('[OmniContext] ChatGPT: Main container found');
+          console.log('[ContextDrop] ChatGPT: Main container found');
           break;
         }
         await this.sleep(300);
@@ -1074,7 +1074,7 @@ export class BatchCapture {
         const allText = document.querySelectorAll('main [class*="markdown"], main [class*="prose"]');
 
         if (turnElements.length > 0 || userMessages.length > 0 || assistantMessages.length > 0 || allText.length > 0) {
-          console.log(`[OmniContext] ChatGPT messages loaded: ${turnElements.length} turns, ${userMessages.length} user, ${assistantMessages.length} assistant, ${allText.length} text blocks`);
+          console.log(`[ContextDrop] ChatGPT messages loaded: ${turnElements.length} turns, ${userMessages.length} user, ${assistantMessages.length} assistant, ${allText.length} text blocks`);
           foundMessages = true;
           break;
         }
@@ -1082,7 +1082,7 @@ export class BatchCapture {
         // 检查是否还在加载中
         const loadingElements = document.querySelectorAll('[class*="loading"], [class*="spinner"], [aria-busy="true"]');
         if (loadingElements.length > 0) {
-          console.log(`[OmniContext] ChatGPT: Still loading... (${attempts})`);
+          console.log(`[ContextDrop] ChatGPT: Still loading... (${attempts})`);
         }
 
         await this.sleep(500);
@@ -1090,7 +1090,7 @@ export class BatchCapture {
       }
 
       if (!foundMessages) {
-        console.warn('[OmniContext] ChatGPT: No messages found after waiting, page might be empty or structure changed');
+        console.warn('[ContextDrop] ChatGPT: No messages found after waiting, page might be empty or structure changed');
       }
 
       // 额外等待确保内容完全渲染
@@ -1189,7 +1189,7 @@ export class BatchCapture {
       // ChatGPT: 跳过 "新聊天" 页面
       if (this.platform === 'chatgpt') {
         if (url.includes('/c/new') || url.endsWith('/chat') || url.endsWith('/chat/')) {
-          console.log('[OmniContext] Skipping ChatGPT new chat page:', url);
+          console.log('[ContextDrop] Skipping ChatGPT new chat page:', url);
           return null;
         }
       }
@@ -1206,10 +1206,10 @@ export class BatchCapture {
       const messages = extractor.extractMessages();
       const title = extractor.extractTitle();
 
-      console.log('[OmniContext] captureCurrentSession: platform=', this.platform, 'messages=', messages.length, 'title=', title);
+      console.log('[ContextDrop] captureCurrentSession: platform=', this.platform, 'messages=', messages.length, 'title=', title);
 
       if (messages.length === 0) {
-        console.warn('[OmniContext] No messages found, skipping');
+        console.warn('[ContextDrop] No messages found, skipping');
         return null;
       }
 
@@ -1220,12 +1220,12 @@ export class BatchCapture {
       if (this.platform === 'yuanbao') {
         const domSessionId = extractSessionIdFromDOM(this.platform);
         sessionId = domSessionId || this.extractSessionId(url);
-        console.log('[OmniContext] Yuanbao session ID from DOM:', sessionId);
+        console.log('[ContextDrop] Yuanbao session ID from DOM:', sessionId);
       } else {
         sessionId = this.extractSessionId(url);
       }
 
-      console.log('[OmniContext] Final session ID:', sessionId);
+      console.log('[ContextDrop] Final session ID:', sessionId);
 
       const session: Session = {
         id: sessionId,
@@ -1253,22 +1253,22 @@ export class BatchCapture {
         if (existing.messageCount !== messages.length) {
           isUpdated = true;
         }
-        console.log('[OmniContext] Session exists, isNew=', isNew, 'isUpdated=', isUpdated);
+        console.log('[ContextDrop] Session exists, isNew=', isNew, 'isUpdated=', isUpdated);
       } else {
-        console.log('[OmniContext] New session');
+        console.log('[ContextDrop] New session');
       }
 
       await sessionStorage.saveSessionOptimized(session);
-      console.log('[OmniContext] ✓ Session saved:', sessionId, title);
+      console.log('[ContextDrop] ✓ Session saved:', sessionId, title);
 
       // Verify save
       const saved = await sessionStorage.getSession(sessionId);
-      console.log('[OmniContext] Verification - session exists in storage:', !!saved);
+      console.log('[ContextDrop] Verification - session exists in storage:', !!saved);
 
       return { session, isNew, isUpdated, oldCount };
 
     } catch (err) {
-      console.error('[OmniContext] Capture failed:', err);
+      console.error('[ContextDrop] Capture failed:', err);
       return null;
     }
   }
@@ -1336,13 +1336,13 @@ export class BatchCapture {
     for (const selector of sidebarSelectors) {
       sidebar = document.querySelector(selector);
       if (sidebar) {
-        console.log(`[OmniContext] Found sidebar: ${selector}`);
+        console.log(`[ContextDrop] Found sidebar: ${selector}`);
         break;
       }
     }
 
     if (!sidebar) {
-      console.warn('[OmniContext] Sidebar not found for scrolling');
+      console.warn('[ContextDrop] Sidebar not found for scrolling');
       return;
     }
 
@@ -1350,11 +1350,11 @@ export class BatchCapture {
     const scrollContainer = this.findScrollableContainer(sidebar);
 
     if (!scrollContainer) {
-      console.warn('[OmniContext] No scrollable container found');
+      console.warn('[ContextDrop] No scrollable container found');
       return;
     }
 
-    console.log(`[OmniContext] Using scroll container:`, scrollContainer.tagName, scrollContainer.className);
+    console.log(`[ContextDrop] Using scroll container:`, scrollContainer.tagName, scrollContainer.className);
 
     // 初始扫描进度
     this.reportProgress({
@@ -1378,14 +1378,14 @@ export class BatchCapture {
 
       // 检查取消
       if (this.isCancelled) {
-        console.log('[OmniContext] Sidebar scan cancelled');
+        console.log('[ContextDrop] Sidebar scan cancelled');
         return;
       }
 
       // 检查会话数量是否增加
       // 使用更精确的选择器，避免匹配到消息区域的元素
       const currentCount = this.countSessionsInSidebar(sidebar!);
-      console.log(`[OmniContext] Sessions loaded: ${currentCount}, scrollTop: ${(scrollContainer as HTMLElement).scrollTop}, scrollHeight: ${scrollContainer.scrollHeight}`);
+      console.log(`[ContextDrop] Sessions loaded: ${currentCount}, scrollTop: ${(scrollContainer as HTMLElement).scrollTop}, scrollHeight: ${scrollContainer.scrollHeight}`);
 
       // 更新扫描进度
       if (currentCount !== lastCount) {
@@ -1410,12 +1410,12 @@ export class BatchCapture {
 
     // 检查取消
     if (this.isCancelled) {
-      console.log('[OmniContext] Sidebar scan cancelled after loop');
+      console.log('[ContextDrop] Sidebar scan cancelled after loop');
       return;
     }
 
     // 扫描完成
-    console.log(`[OmniContext] Finished loading sessions, total: ${lastCount}`);
+    console.log(`[ContextDrop] Finished loading sessions, total: ${lastCount}`);
   }
 
   /**
@@ -1426,7 +1426,7 @@ export class BatchCapture {
     // 首先检查root本身是否可滚动
     const rootStyle = window.getComputedStyle(root);
     if (this.isScrollable(root, rootStyle)) {
-      console.log(`[OmniContext] Root element is scrollable`);
+      console.log(`[ContextDrop] Root element is scrollable`);
       return root;
     }
 
@@ -1470,7 +1470,7 @@ export class BatchCapture {
     // 按优先级排序，选择最高优先级的元素
     if (candidates.length > 0) {
       candidates.sort((a, b) => b.priority - a.priority);
-      console.log(`[OmniContext] Found ${candidates.length} scrollable candidates`);
+      console.log(`[ContextDrop] Found ${candidates.length} scrollable candidates`);
       return candidates[0].element;
     }
 
@@ -1527,13 +1527,13 @@ export class BatchCapture {
                     document.querySelector('[class*="history"]');
 
     if (sidebar) {
-      console.log('[OmniContext] ChatGPT sidebar found');
+      console.log('[ContextDrop] ChatGPT sidebar found');
       // 等待侧边栏内容加载
       await this.sleep(500);
       return;
     }
 
-    console.warn('[OmniContext] ChatGPT sidebar not found');
+    console.warn('[ContextDrop] ChatGPT sidebar not found');
   }
 
   private async ensureGeminiSidebarOpen(): Promise<void> {
@@ -1543,12 +1543,12 @@ export class BatchCapture {
                     document.querySelector('[class*="conversation-list"]');
 
     if (sidebar) {
-      console.log('[OmniContext] Gemini sidebar found');
+      console.log('[ContextDrop] Gemini sidebar found');
       await this.sleep(500);
       return;
     }
 
-    console.warn('[OmniContext] Gemini sidebar not found');
+    console.warn('[ContextDrop] Gemini sidebar not found');
   }
 
   private async ensureDeepseekSidebarOpen(): Promise<void> {
@@ -1557,12 +1557,12 @@ export class BatchCapture {
                     document.querySelector('[class*="chat-list"]');
 
     if (sidebar) {
-      console.log('[OmniContext] DeepSeek sidebar found');
+      console.log('[ContextDrop] DeepSeek sidebar found');
       return;
     }
 
     // 尝试打开历史记录面板
-    console.log('[OmniContext] DeepSeek sidebar not found, trying to open history panel');
+    console.log('[ContextDrop] DeepSeek sidebar not found, trying to open history panel');
     const historyButton = document.querySelector('[class*="history"]') ||
                           document.querySelector('button[aria-label*="history"]') ||
                           document.querySelector('[class*="menu"]');
@@ -1579,11 +1579,11 @@ export class BatchCapture {
                     document.querySelector('[class*="sidebar"]');
 
     if (sidebar) {
-      console.log('[OmniContext] Kimi sidebar found');
+      console.log('[ContextDrop] Kimi sidebar found');
       return;
     }
 
-    console.warn('[OmniContext] Kimi sidebar not found');
+    console.warn('[ContextDrop] Kimi sidebar not found');
   }
 
   private async ensureDoubaoSidebarOpen(): Promise<void> {
@@ -1598,7 +1598,7 @@ export class BatchCapture {
 
       // 如果侧边栏被移出视图（translateX(-100%) 或类似）
       if (transform.includes('translate') && rect.x < 0) {
-        console.log('[OmniContext] Doubao sidebar is hidden, trying to open it');
+        console.log('[ContextDrop] Doubao sidebar is hidden, trying to open it');
 
         // 尝试找到打开侧边栏的按钮
         const openButtonSelectors = [
@@ -1613,25 +1613,25 @@ export class BatchCapture {
         for (const selector of openButtonSelectors) {
           const button = document.querySelector(selector);
           if (button) {
-            console.log(`[OmniContext] Found open button: ${selector}`);
+            console.log(`[ContextDrop] Found open button: ${selector}`);
             (button as HTMLElement).click();
             await this.sleep(1000);
 
             // 检查是否成功打开
             const newRect = sidebar.getBoundingClientRect();
             if (newRect.x >= 0) {
-              console.log('[OmniContext] Doubao sidebar opened successfully');
+              console.log('[ContextDrop] Doubao sidebar opened successfully');
               return;
             }
           }
         }
 
-        console.warn('[OmniContext] Could not find button to open Doubao sidebar');
+        console.warn('[ContextDrop] Could not find button to open Doubao sidebar');
       } else {
-        console.log('[OmniContext] Doubao sidebar is already visible');
+        console.log('[ContextDrop] Doubao sidebar is already visible');
       }
     } else {
-      console.warn('[OmniContext] Doubao sidebar element not found');
+      console.warn('[ContextDrop] Doubao sidebar element not found');
     }
   }
 
@@ -1642,7 +1642,7 @@ export class BatchCapture {
 
     // 如果侧边栏不存在，尝试点击打开按钮
     if (!sidebar) {
-      console.log('[OmniContext] Yuanbao sidebar not found, trying to open it');
+      console.log('[ContextDrop] Yuanbao sidebar not found, trying to open it');
 
       const openButtonSelectors = [
         '.yb-nav-fixed__trigger',
@@ -1657,7 +1657,7 @@ export class BatchCapture {
       for (const selector of openButtonSelectors) {
         const button = document.querySelector(selector);
         if (button) {
-          console.log(`[OmniContext] Found Yuanbao open button: ${selector}`);
+          console.log(`[ContextDrop] Found Yuanbao open button: ${selector}`);
           (button as HTMLElement).click();
           await this.sleep(1000);
 
@@ -1665,7 +1665,7 @@ export class BatchCapture {
           sidebar = document.querySelector('.yb-nav') ||
                     document.querySelector('.yb-common-nav');
           if (sidebar) {
-            console.log('[OmniContext] Yuanbao sidebar opened');
+            console.log('[ContextDrop] Yuanbao sidebar opened');
             break;
           }
         }
@@ -1673,7 +1673,7 @@ export class BatchCapture {
     }
 
     if (!sidebar) {
-      console.warn('[OmniContext] Yuanbao sidebar element not found after trying to open');
+      console.warn('[ContextDrop] Yuanbao sidebar element not found after trying to open');
       return;
     }
 
@@ -1681,7 +1681,7 @@ export class BatchCapture {
     const rect = sidebar.getBoundingClientRect();
     const style = window.getComputedStyle(sidebar);
     if (rect.width === 0 || style.visibility === 'hidden') {
-      console.log('[OmniContext] Yuanbao sidebar is hidden, trying to open it');
+      console.log('[ContextDrop] Yuanbao sidebar is hidden, trying to open it');
 
       const openButtonSelectors = [
         '.yb-nav-fixed__trigger',
@@ -1693,20 +1693,20 @@ export class BatchCapture {
       for (const selector of openButtonSelectors) {
         const button = document.querySelector(selector);
         if (button) {
-          console.log(`[OmniContext] Found Yuanbao open button: ${selector}`);
+          console.log(`[ContextDrop] Found Yuanbao open button: ${selector}`);
           (button as HTMLElement).click();
           await this.sleep(1000);
 
           // 检查是否成功打开
           const newRect = sidebar.getBoundingClientRect();
           if (newRect.width > 0) {
-            console.log('[OmniContext] Yuanbao sidebar opened successfully');
+            console.log('[ContextDrop] Yuanbao sidebar opened successfully');
             break;
           }
         }
       }
     } else {
-      console.log('[OmniContext] Yuanbao sidebar is already visible');
+      console.log('[ContextDrop] Yuanbao sidebar is already visible');
     }
 
     // 关键：确保会话列表区域已展开（可能需要点击"历史会话"或"最近对话"）
@@ -1722,11 +1722,11 @@ export class BatchCapture {
     const sessionItems = document.querySelectorAll('.yb-recent-conv-list__item');
 
     if (sessionList && sessionItems.length > 0) {
-      console.log('[OmniContext] Yuanbao session list already has items');
+      console.log('[ContextDrop] Yuanbao session list already has items');
       return;
     }
 
-    console.log('[OmniContext] Yuanbao session list is empty, trying to expand it');
+    console.log('[ContextDrop] Yuanbao session list is empty, trying to expand it');
 
     // 尝试找到展开会话列表的按钮
     // 元宝可能有"历史会话"、"最近对话"等展开按钮
@@ -1749,14 +1749,14 @@ export class BatchCapture {
         // 检查按钮文本是否包含相关关键词
         if (text.includes('历史') || text.includes('最近') || text.includes('会话') ||
             text.includes('对话') || text.includes('history') || text.includes('recent')) {
-          console.log(`[OmniContext] Found expand button: ${selector}, text: ${text}`);
+          console.log(`[ContextDrop] Found expand button: ${selector}, text: ${text}`);
           (button as HTMLElement).click();
           await this.sleep(800);
 
           // 检查是否成功展开
           const newItems = document.querySelectorAll('.yb-recent-conv-list__item');
           if (newItems.length > 0) {
-            console.log(`[OmniContext] Session list expanded, found ${newItems.length} items`);
+            console.log(`[ContextDrop] Session list expanded, found ${newItems.length} items`);
             return;
           }
         }
@@ -1772,19 +1772,19 @@ export class BatchCapture {
         // 跳过已经是会话项的元素
         if (className.includes('conv-list__item')) continue;
 
-        console.log(`[OmniContext] Trying to click sidebar item: ${className}`);
+        console.log(`[ContextDrop] Trying to click sidebar item: ${className}`);
         (item as HTMLElement).click();
         await this.sleep(500);
 
         const newItems = document.querySelectorAll('.yb-recent-conv-list__item');
         if (newItems.length > 0) {
-          console.log(`[OmniContext] Session list appeared after click, found ${newItems.length} items`);
+          console.log(`[ContextDrop] Session list appeared after click, found ${newItems.length} items`);
           return;
         }
       }
     }
 
-    console.warn('[OmniContext] Could not expand Yuanbao session list');
+    console.warn('[ContextDrop] Could not expand Yuanbao session list');
   }
 
   private getDoubaoSessionListElements(): Element[] {
@@ -1805,14 +1805,14 @@ export class BatchCapture {
     for (const selector of selectors) {
       const elements = document.querySelectorAll(selector);
       if (elements.length > 0) {
-        console.log(`[OmniContext] Found ${elements.length} sessions with: ${selector}`);
+        console.log(`[ContextDrop] Found ${elements.length} sessions with: ${selector}`);
         // 进一步过滤：排除看起来像消息的元素（文本内容太长）
         const filtered = Array.from(elements).filter(el => {
           const textLength = el.textContent?.length || 0;
           // 会话标题通常较短（<200字符）
           return textLength < 200;
         });
-        console.log(`[OmniContext] After filtering: ${filtered.length} sessions`);
+        console.log(`[ContextDrop] After filtering: ${filtered.length} sessions`);
         return filtered;
       }
     }
@@ -1826,11 +1826,11 @@ export class BatchCapture {
         const textLength = el.textContent?.length || 0;
         return textLength < 200;
       });
-      console.log(`[OmniContext] Fallback: found ${items.length}, filtered to ${filtered.length}`);
+      console.log(`[ContextDrop] Fallback: found ${items.length}, filtered to ${filtered.length}`);
       return filtered;
     }
 
-    console.warn('[OmniContext] No session list found');
+    console.warn('[ContextDrop] No session list found');
     return [];
   }
 
@@ -1877,13 +1877,13 @@ export class BatchCapture {
     for (const selector of rootSelectors) {
       root = document.querySelector(selector);
       if (root) {
-        console.log(`[OmniContext] Found message root: ${selector}`);
+        console.log(`[ContextDrop] Found message root: ${selector}`);
         break;
       }
     }
 
     if (!root) {
-      console.warn('[OmniContext] Message container not found');
+      console.warn('[ContextDrop] Message container not found');
       return 0;
     }
 
@@ -1891,7 +1891,7 @@ export class BatchCapture {
     const container = this.findScrollableContainer(root);
 
     if (!container) {
-      console.warn('[OmniContext] No scrollable message container found, trying root itself');
+      console.warn('[ContextDrop] No scrollable message container found, trying root itself');
       // 如果找不到可滚动容器，尝试直接使用root
       const rootStyle = window.getComputedStyle(root);
       if (root.scrollHeight <= root.clientHeight &&
@@ -1901,7 +1901,7 @@ export class BatchCapture {
     }
 
     const scrollTarget = container || root;
-    console.log(`[OmniContext] Scrolling message container:`, scrollTarget.className);
+    console.log(`[ContextDrop] Scrolling message container:`, scrollTarget.className);
 
     // 滚动到顶部加载历史
     let lastHeight = scrollTarget.scrollHeight;
@@ -1914,7 +1914,7 @@ export class BatchCapture {
 
       // 检查取消
       if (this.isCancelled) {
-        console.log('[OmniContext] Scroll cancelled');
+        console.log('[ContextDrop] Scroll cancelled');
         return messageCount;
       }
 
@@ -1925,7 +1925,7 @@ export class BatchCapture {
         noChangeCount = 0;
         // 更新消息计数
         messageCount = this.countDoubaoMessages(root);
-        console.log(`[OmniContext] History loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+        console.log(`[ContextDrop] History loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
       }
     }
 
@@ -1943,11 +1943,11 @@ export class BatchCapture {
                     document.querySelector('.yb-nav__content');
 
     if (!sidebar) {
-      console.warn('[OmniContext] Yuanbao sidebar not found');
+      console.warn('[ContextDrop] Yuanbao sidebar not found');
       return [];
     }
 
-    console.log('[OmniContext] Found Yuanbao sidebar');
+    console.log('[ContextDrop] Found Yuanbao sidebar');
 
     // 多种选择器尝试
     const selectors = [
@@ -1964,7 +1964,7 @@ export class BatchCapture {
       try {
         const elements = document.querySelectorAll(selector);
         if (elements.length > 0) {
-          console.log(`[OmniContext] Found ${elements.length} Yuanbao sessions with: ${selector}`);
+          console.log(`[ContextDrop] Found ${elements.length} Yuanbao sessions with: ${selector}`);
           // 过滤掉分隔符等非会话项
           const filtered = Array.from(elements).filter(el => {
             // 确保有会话ID标识
@@ -1972,24 +1972,24 @@ export class BatchCapture {
                           el.hasAttribute('dt-cid');
             return hasId;
           });
-          console.log(`[OmniContext] After filtering: ${filtered.length} valid sessions`);
+          console.log(`[ContextDrop] After filtering: ${filtered.length} valid sessions`);
           return filtered;
         }
       } catch (e) {
-        console.warn(`[OmniContext] Selector failed: ${selector}`, e);
+        console.warn(`[ContextDrop] Selector failed: ${selector}`, e);
       }
     }
 
     // 降级：直接在侧边栏内搜索
     if (sidebar) {
       const items = sidebar.querySelectorAll('[class*="conv-list__item"]');
-      console.log(`[OmniContext] Fallback: found ${items.length} items in sidebar`);
+      console.log(`[ContextDrop] Fallback: found ${items.length} items in sidebar`);
       return Array.from(items).filter(el => {
         return el.querySelector('[data-item-id]') || el.hasAttribute('dt-cid');
       });
     }
 
-    console.warn('[OmniContext] No Yuanbao session list found');
+    console.warn('[ContextDrop] No Yuanbao session list found');
     return [];
   }
 
@@ -2024,7 +2024,7 @@ export class BatchCapture {
   // ========== DeepSeek 平台方法 ==========
 
   private getDeepseekSessionListElements(): Element[] {
-    console.log('[OmniContext] === DeepSeek Session List Debug ===');
+    console.log('[ContextDrop] === DeepSeek Session List Debug ===');
 
     // DeepSeek 会话列表项的类名（基于调试发现的模式）
     // 1. 首先尝试使用已知的会话列表项类名
@@ -2056,20 +2056,20 @@ export class BatchCapture {
           });
 
           if (sessionItems.length > 0) {
-            console.log(`[OmniContext] DeepSeek: Found ${sessionItems.length} sessions with selector: ${selector}`);
+            console.log(`[ContextDrop] DeepSeek: Found ${sessionItems.length} sessions with selector: ${selector}`);
             sessionItems.slice(0, 3).forEach((el, i) => {
-              console.log(`[OmniContext]   [${i}] class="${el.className}" text="${el.textContent?.slice(0, 30)}"`);
+              console.log(`[ContextDrop]   [${i}] class="${el.className}" text="${el.textContent?.slice(0, 30)}"`);
             });
             return sessionItems;
           }
         }
       } catch (e) {
-        console.warn(`[OmniContext] DeepSeek: Selector error: ${selector}`, e);
+        console.warn(`[ContextDrop] DeepSeek: Selector error: ${selector}`, e);
       }
     }
 
     // 2. 回退方案：分析页面结构
-    console.log('[OmniContext] DeepSeek: Trying fallback session detection...');
+    console.log('[ContextDrop] DeepSeek: Trying fallback session detection...');
 
     // 检查是否有历史会话按钮需要点击
     const historyButtonSelectors = [
@@ -2084,9 +2084,9 @@ export class BatchCapture {
     for (const selector of historyButtonSelectors) {
       const btn = document.querySelector(selector);
       if (btn) {
-        console.log(`[OmniContext] DeepSeek: Found potential history button: ${selector}`);
-        console.log(`[OmniContext]   class: ${btn.className}`);
-        console.log(`[OmniContext]   text: ${btn.textContent?.slice(0, 50)}`);
+        console.log(`[ContextDrop] DeepSeek: Found potential history button: ${selector}`);
+        console.log(`[ContextDrop]   class: ${btn.className}`);
+        console.log(`[ContextDrop]   text: ${btn.textContent?.slice(0, 50)}`);
       }
     }
 
@@ -2109,19 +2109,19 @@ export class BatchCapture {
       }
     });
 
-    console.log(`[OmniContext] Found ${potentialSessionItems.length} potential session items`);
+    console.log(`[ContextDrop] Found ${potentialSessionItems.length} potential session items`);
 
     if (potentialSessionItems.length > 0) {
       potentialSessionItems.slice(0, 5).forEach((el, i) => {
-        console.log(`[OmniContext] [${i}] class="${el.className}"`);
-        console.log(`[OmniContext]     text="${el.textContent?.slice(0, 50)}"`);
+        console.log(`[ContextDrop] [${i}] class="${el.className}"`);
+        console.log(`[ContextDrop]     text="${el.textContent?.slice(0, 50)}"`);
       });
 
       return potentialSessionItems;
     }
 
-    console.warn('[OmniContext] DeepSeek: No session list found');
-    console.warn('[OmniContext] DeepSeek may require manually opening the history panel first');
+    console.warn('[ContextDrop] DeepSeek: No session list found');
+    console.warn('[ContextDrop] DeepSeek may require manually opening the history panel first');
     return [];
   }
 
@@ -2140,14 +2140,14 @@ export class BatchCapture {
       // 首先尝试匹配 /s/{sessionId} 格式
       const sMatch = href.match(/\/s\/([a-zA-Z0-9_-]+)/);
       if (sMatch) {
-        console.log(`[OmniContext] DeepSeek: Extracted session ID from href (s format): ${sMatch[1]}`);
+        console.log(`[ContextDrop] DeepSeek: Extracted session ID from href (s format): ${sMatch[1]}`);
         return sMatch[1];
       }
 
       // 回退：匹配 /chat/{sessionId} 格式
       const chatMatch = href.match(/\/chat\/([a-zA-Z0-9_-]+)/);
       if (chatMatch) {
-        console.log(`[OmniContext] DeepSeek: Extracted session ID from href (chat format): ${chatMatch[1]}`);
+        console.log(`[ContextDrop] DeepSeek: Extracted session ID from href (chat format): ${chatMatch[1]}`);
         return chatMatch[1];
       }
     }
@@ -2157,7 +2157,7 @@ export class BatchCapture {
                    element.getAttribute('data-session-id') ||
                    element.getAttribute('data-chat-id');
     if (dataId) {
-      console.log(`[OmniContext] DeepSeek: Extracted session ID from data attribute: ${dataId}`);
+      console.log(`[ContextDrop] DeepSeek: Extracted session ID from data attribute: ${dataId}`);
       return dataId;
     }
 
@@ -2200,13 +2200,13 @@ export class BatchCapture {
     for (const selector of rootSelectors) {
       root = document.querySelector(selector);
       if (root) {
-        console.log(`[OmniContext] Found Yuanbao message root: ${selector}`);
+        console.log(`[ContextDrop] Found Yuanbao message root: ${selector}`);
         break;
       }
     }
 
     if (!root) {
-      console.warn('[OmniContext] Yuanbao message container not found');
+      console.warn('[ContextDrop] Yuanbao message container not found');
       return 0;
     }
 
@@ -2214,11 +2214,11 @@ export class BatchCapture {
     const container = this.findScrollableContainer(root);
 
     if (!container) {
-      console.warn('[OmniContext] No scrollable Yuanbao message container found');
+      console.warn('[ContextDrop] No scrollable Yuanbao message container found');
       return this.countYuanbaoMessages(root);
     }
 
-    console.log(`[OmniContext] Scrolling Yuanbao message container`);
+    console.log(`[ContextDrop] Scrolling Yuanbao message container`);
 
     // 滚动到顶部加载历史
     let lastHeight = container.scrollHeight;
@@ -2230,7 +2230,7 @@ export class BatchCapture {
       await this.sleep(500);
 
       if (this.isCancelled) {
-        console.log('[OmniContext] Yuanbao scroll cancelled');
+        console.log('[ContextDrop] Yuanbao scroll cancelled');
         return messageCount;
       }
 
@@ -2240,7 +2240,7 @@ export class BatchCapture {
         lastHeight = container.scrollHeight;
         noChangeCount = 0;
         messageCount = this.countYuanbaoMessages(root);
-        console.log(`[OmniContext] Yuanbao history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+        console.log(`[ContextDrop] Yuanbao history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
       }
     }
 
@@ -2260,13 +2260,13 @@ export class BatchCapture {
     for (const selector of rootSelectors) {
       root = document.querySelector(selector);
       if (root) {
-        console.log(`[OmniContext] Found DeepSeek message root: ${selector}`);
+        console.log(`[ContextDrop] Found DeepSeek message root: ${selector}`);
         break;
       }
     }
 
     if (!root) {
-      console.warn('[OmniContext] DeepSeek message container not found');
+      console.warn('[ContextDrop] DeepSeek message container not found');
       return this.countDeepseekMessages();
     }
 
@@ -2274,11 +2274,11 @@ export class BatchCapture {
     const container = this.findScrollableContainer(root);
 
     if (!container) {
-      console.warn('[OmniContext] No scrollable DeepSeek message container found');
+      console.warn('[ContextDrop] No scrollable DeepSeek message container found');
       return this.countDeepseekMessages();
     }
 
-    console.log(`[OmniContext] Scrolling DeepSeek message container`);
+    console.log(`[ContextDrop] Scrolling DeepSeek message container`);
 
     // 滚动到顶部加载历史
     let lastHeight = container.scrollHeight;
@@ -2290,7 +2290,7 @@ export class BatchCapture {
       await this.sleep(500);
 
       if (this.isCancelled) {
-        console.log('[OmniContext] DeepSeek scroll cancelled');
+        console.log('[ContextDrop] DeepSeek scroll cancelled');
         return messageCount;
       }
 
@@ -2300,7 +2300,7 @@ export class BatchCapture {
         lastHeight = container.scrollHeight;
         noChangeCount = 0;
         messageCount = this.countDeepseekMessages();
-        console.log(`[OmniContext] DeepSeek history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+        console.log(`[ContextDrop] DeepSeek history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
       }
     }
 
@@ -2313,7 +2313,7 @@ export class BatchCapture {
    */
   private async captureDeepseekSessions(): Promise<void> {
     const total = this.selectedSessionIds.size;
-    console.log(`[OmniContext] DeepSeek: Starting click-based capture of ${total} sessions`);
+    console.log(`[ContextDrop] DeepSeek: Starting click-based capture of ${total} sessions`);
 
     let captured = 0;
     let newCount = 0;
@@ -2340,18 +2340,18 @@ export class BatchCapture {
 
       // 去重检查
       if (this.processedSessions.has(sessionId)) {
-        console.log(`[OmniContext] DeepSeek: Skipping duplicate session: ${sessionId}`);
+        console.log(`[ContextDrop] DeepSeek: Skipping duplicate session: ${sessionId}`);
         continue;
       }
 
       // 查找会话信息
       const sessionInfo = this.discoveredSessions.find(s => s.id === sessionId);
       if (!sessionInfo) {
-        console.warn(`[OmniContext] DeepSeek: Session info not found for ${sessionId}`);
+        console.warn(`[ContextDrop] DeepSeek: Session info not found for ${sessionId}`);
         continue;
       }
 
-      console.log(`[OmniContext] DeepSeek: Processing session ${captured + 1}/${total}: ${sessionInfo.title}`);
+      console.log(`[ContextDrop] DeepSeek: Processing session ${captured + 1}/${total}: ${sessionInfo.title}`);
 
       const sessionStart = Date.now();
 
@@ -2380,13 +2380,13 @@ export class BatchCapture {
         }
 
         if (!targetElement) {
-          console.warn(`[OmniContext] DeepSeek: Session element not found for ${sessionId}, trying direct navigation`);
+          console.warn(`[ContextDrop] DeepSeek: Session element not found for ${sessionId}, trying direct navigation`);
           // 尝试直接点击链接
           const directLink = document.querySelector(`a[href*="/s/${sessionId}"]`) as HTMLAnchorElement;
           if (directLink) {
             targetElement = directLink;
           } else {
-            console.warn(`[OmniContext] DeepSeek: Could not find session link, skipping`);
+            console.warn(`[ContextDrop] DeepSeek: Could not find session link, skipping`);
             continue;
           }
         }
@@ -2394,13 +2394,13 @@ export class BatchCapture {
         // 点击会话
         const currentUrl = window.location.href;
         (targetElement as HTMLElement).click();
-        console.log(`[OmniContext] DeepSeek: Clicked on session element`);
+        console.log(`[ContextDrop] DeepSeek: Clicked on session element`);
 
         // 等待 URL 变化或消息加载
         for (let i = 0; i < 20; i++) {
           await this.sleep(200);
           if (window.location.href !== currentUrl) {
-            console.log(`[OmniContext] DeepSeek: URL changed to ${window.location.href}`);
+            console.log(`[ContextDrop] DeepSeek: URL changed to ${window.location.href}`);
             break;
           }
         }
@@ -2412,7 +2412,7 @@ export class BatchCapture {
         while (attempts < maxAttempts) {
           const messages = document.querySelectorAll('[class*="ds-message"]');
           if (messages.length > 0) {
-            console.log(`[OmniContext] DeepSeek: Messages loaded: ${messages.length}`);
+            console.log(`[ContextDrop] DeepSeek: Messages loaded: ${messages.length}`);
             break;
           }
           await this.sleep(400);
@@ -2432,9 +2432,9 @@ export class BatchCapture {
         }
 
         // 滚动加载历史
-        console.log(`[OmniContext] DeepSeek: Starting to scroll and load history...`);
+        console.log(`[ContextDrop] DeepSeek: Starting to scroll and load history...`);
         const sessionMessageTotal = await this.scrollToLoadHistory();
-        console.log(`[OmniContext] DeepSeek: Total messages after scroll: ${sessionMessageTotal}`);
+        console.log(`[ContextDrop] DeepSeek: Total messages after scroll: ${sessionMessageTotal}`);
 
         // 报告进度
         this.reportProgress({
@@ -2465,15 +2465,15 @@ export class BatchCapture {
         captured++;
         const sessionTime = Date.now() - sessionStart;
         this.sessionTimes.push(sessionTime);
-        console.log(`[OmniContext] DeepSeek: Captured session in ${sessionTime}ms`);
+        console.log(`[ContextDrop] DeepSeek: Captured session in ${sessionTime}ms`);
 
       } catch (err: any) {
-        console.error(`[OmniContext] DeepSeek: Error capturing session ${sessionInfo.title}:`, err);
+        console.error(`[ContextDrop] DeepSeek: Error capturing session ${sessionInfo.title}:`, err);
       }
     }
 
     // 完成
-    console.log(`[OmniContext] DeepSeek: Batch capture completed. Captured: ${captured}, New: ${newCount}, Updated: ${updatedCount}`);
+    console.log(`[ContextDrop] DeepSeek: Batch capture completed. Captured: ${captured}, New: ${newCount}, Updated: ${updatedCount}`);
 
     this.reportProgress({
       total,
@@ -2495,17 +2495,17 @@ export class BatchCapture {
   // ========== Kimi 平台方法 ==========
 
   private getKimiSessionListElements(): Element[] {
-    console.log('[OmniContext] === Kimi Session List Debug ===');
+    console.log('[ContextDrop] === Kimi Session List Debug ===');
 
     // Kimi 会话列表选择器
     // 会话项在 .chat-info-item 中，带有链接到 /chat/{sessionId}
     const sessionItems = document.querySelectorAll('.chat-info-item a[href*="/chat/"]');
-    console.log(`[OmniContext] Kimi: Found ${sessionItems.length} session items with .chat-info-item a[href*="/chat/"]`);
+    console.log(`[ContextDrop] Kimi: Found ${sessionItems.length} session items with .chat-info-item a[href*="/chat/"]`);
 
     if (sessionItems.length > 0) {
       sessionItems.forEach((item, i) => {
         if (i < 5) {
-          console.log(`[OmniContext] Kimi [${i}] class="${item.className}" href="${item.getAttribute('href')}"`);
+          console.log(`[ContextDrop] Kimi [${i}] class="${item.className}" href="${item.getAttribute('href')}"`);
         }
       });
       return Array.from(sessionItems);
@@ -2513,7 +2513,7 @@ export class BatchCapture {
 
     // 备用：直接查找所有会话链接
     const allChatLinks = document.querySelectorAll('a[href^="/chat/"]');
-    console.log(`[OmniContext] Kimi: Fallback found ${allChatLinks.length} links with href^="/chat/"`);
+    console.log(`[ContextDrop] Kimi: Fallback found ${allChatLinks.length} links with href^="/chat/"`);
 
     if (allChatLinks.length > 0) {
       return Array.from(allChatLinks).filter(link => {
@@ -2523,7 +2523,7 @@ export class BatchCapture {
       });
     }
 
-    console.warn('[OmniContext] Kimi: No session list found');
+    console.warn('[ContextDrop] Kimi: No session list found');
     return [];
   }
 
@@ -2545,7 +2545,7 @@ export class BatchCapture {
     if (href) {
       const match = href.match(/\/chat\/([a-zA-Z0-9_-]+)/);
       if (match) {
-        console.log(`[OmniContext] Kimi: Extracted session ID: ${match[1]}`);
+        console.log(`[ContextDrop] Kimi: Extracted session ID: ${match[1]}`);
         return match[1];
       }
     }
@@ -2555,7 +2555,7 @@ export class BatchCapture {
                    element.getAttribute('data-session-id') ||
                    element.getAttribute('data-chat-id');
     if (dataId) {
-      console.log(`[OmniContext] Kimi: Extracted session ID from data attribute: ${dataId}`);
+      console.log(`[ContextDrop] Kimi: Extracted session ID from data attribute: ${dataId}`);
       return dataId;
     }
 
@@ -2592,17 +2592,17 @@ export class BatchCapture {
   // ========== Gemini 平台方法 ==========
 
   private getGeminiSessionListElements(): Element[] {
-    console.log('[OmniContext] === Gemini Session List Debug ===');
+    console.log('[ContextDrop] === Gemini Session List Debug ===');
 
     // Gemini 会话列表选择器
     // 会话项在侧边栏，链接格式为 /app/{sessionId}
     const sessionItems = document.querySelectorAll('a[href^="/app/"]');
-    console.log(`[OmniContext] Gemini: Found ${sessionItems.length} session items with a[href^="/app/"]`);
+    console.log(`[ContextDrop] Gemini: Found ${sessionItems.length} session items with a[href^="/app/"]`);
 
     if (sessionItems.length > 0) {
       sessionItems.forEach((item, i) => {
         if (i < 5) {
-          console.log(`[OmniContext] Gemini [${i}] class="${item.className}" href="${item.getAttribute('href')}"`);
+          console.log(`[ContextDrop] Gemini [${i}] class="${item.className}" href="${item.getAttribute('href')}"`);
         }
       });
       return Array.from(sessionItems);
@@ -2626,13 +2626,13 @@ export class BatchCapture {
           return href.startsWith('/app/') && href.length > 5;
         });
         if (sessionLinks.length > 0) {
-          console.log(`[OmniContext] Gemini: Fallback found ${sessionLinks.length} sessions with ${selector}`);
+          console.log(`[ContextDrop] Gemini: Fallback found ${sessionLinks.length} sessions with ${selector}`);
           return sessionLinks;
         }
       }
     }
 
-    console.warn('[OmniContext] Gemini: No session list found');
+    console.warn('[ContextDrop] Gemini: No session list found');
     return [];
   }
 
@@ -2654,7 +2654,7 @@ export class BatchCapture {
     if (href) {
       const match = href.match(/\/app\/([a-zA-Z0-9_-]+)/);
       if (match) {
-        console.log(`[OmniContext] Gemini: Extracted session ID: ${match[1]}`);
+        console.log(`[ContextDrop] Gemini: Extracted session ID: ${match[1]}`);
         return match[1];
       }
     }
@@ -2664,7 +2664,7 @@ export class BatchCapture {
                    element.getAttribute('data-session-id') ||
                    element.getAttribute('data-conversation-id');
     if (dataId) {
-      console.log(`[OmniContext] Gemini: Extracted session ID from data attribute: ${dataId}`);
+      console.log(`[ContextDrop] Gemini: Extracted session ID from data attribute: ${dataId}`);
       return dataId;
     }
 
@@ -2697,13 +2697,13 @@ export class BatchCapture {
     for (const selector of rootSelectors) {
       root = document.querySelector(selector);
       if (root) {
-        console.log(`[OmniContext] Found Gemini message root: ${selector}`);
+        console.log(`[ContextDrop] Found Gemini message root: ${selector}`);
         break;
       }
     }
 
     if (!root) {
-      console.warn('[OmniContext] Gemini message container not found');
+      console.warn('[ContextDrop] Gemini message container not found');
       return this.countGeminiMessages();
     }
 
@@ -2711,11 +2711,11 @@ export class BatchCapture {
     const container = this.findScrollableContainer(root);
 
     if (!container) {
-      console.warn('[OmniContext] No scrollable Gemini message container found');
+      console.warn('[ContextDrop] No scrollable Gemini message container found');
       return this.countGeminiMessages();
     }
 
-    console.log(`[OmniContext] Scrolling Gemini message container`);
+    console.log(`[ContextDrop] Scrolling Gemini message container`);
 
     // 滚动到顶部加载历史
     let lastHeight = container.scrollHeight;
@@ -2727,7 +2727,7 @@ export class BatchCapture {
       await this.sleep(500);
 
       if (this.isCancelled) {
-        console.log('[OmniContext] Gemini scroll cancelled');
+        console.log('[ContextDrop] Gemini scroll cancelled');
         return messageCount;
       }
 
@@ -2737,7 +2737,7 @@ export class BatchCapture {
         lastHeight = container.scrollHeight;
         noChangeCount = 0;
         messageCount = this.countGeminiMessages();
-        console.log(`[OmniContext] Gemini history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+        console.log(`[ContextDrop] Gemini history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
       }
     }
 
@@ -2747,12 +2747,12 @@ export class BatchCapture {
   // ========== ChatGPT 平台特定方法 ==========
 
   private getChatgptSessionListElements(): Element[] {
-    console.log('[OmniContext] === ChatGPT Session List Debug ===');
+    console.log('[ContextDrop] === ChatGPT Session List Debug ===');
 
     // ChatGPT 会话链接格式: /c/{conversation_id} 或 /chat/{conversation_id}
     // 主要选择器：查找以 /c/ 开头的链接
     const sessionItems = document.querySelectorAll('a[href^="/c/"]');
-    console.log(`[OmniContext] ChatGPT: Found ${sessionItems.length} session items with a[href^="/c/"]`);
+    console.log(`[ContextDrop] ChatGPT: Found ${sessionItems.length} session items with a[href^="/c/"]`);
 
     if (sessionItems.length > 0) {
       // 过滤：排除非会话项（如设置、帮助等）
@@ -2767,9 +2767,9 @@ export class BatchCapture {
       });
 
       if (sessionLinks.length > 0) {
-        console.log(`[OmniContext] ChatGPT: Filtered to ${sessionLinks.length} valid sessions`);
+        console.log(`[ContextDrop] ChatGPT: Filtered to ${sessionLinks.length} valid sessions`);
         sessionLinks.slice(0, 5).forEach((item, i) => {
-          console.log(`[OmniContext] ChatGPT [${i}] class="${item.className}" href="${item.getAttribute('href')}" text="${item.textContent?.slice(0, 30)}"`);
+          console.log(`[ContextDrop] ChatGPT [${i}] class="${item.className}" href="${item.getAttribute('href')}" text="${item.textContent?.slice(0, 30)}"`);
         });
         return sessionLinks;
       }
@@ -2785,7 +2785,7 @@ export class BatchCapture {
                !text.toLowerCase().includes('new chat');
       });
       if (sessionLinks.length > 0) {
-        console.log(`[OmniContext] ChatGPT: Found ${sessionLinks.length} sessions with /chat/ format`);
+        console.log(`[ContextDrop] ChatGPT: Found ${sessionLinks.length} sessions with /chat/ format`);
         return sessionLinks;
       }
     }
@@ -2813,13 +2813,13 @@ export class BatchCapture {
                  !text.toLowerCase().includes('new chat');
         });
         if (sessionLinks.length > 0) {
-          console.log(`[OmniContext] ChatGPT: Fallback found ${sessionLinks.length} sessions with ${selector}`);
+          console.log(`[ContextDrop] ChatGPT: Fallback found ${sessionLinks.length} sessions with ${selector}`);
           return sessionLinks;
         }
       }
     }
 
-    console.warn('[OmniContext] ChatGPT: No session list found');
+    console.warn('[ContextDrop] ChatGPT: No session list found');
     return [];
   }
 
@@ -2860,7 +2860,7 @@ export class BatchCapture {
         const sessionId = cMatch[1];
         // 过滤掉无效ID（如 "new"）
         if (sessionId && sessionId !== 'new' && sessionId.length > 4) {
-          console.log(`[OmniContext] ChatGPT: Extracted session ID from href (c format): ${sessionId}`);
+          console.log(`[ContextDrop] ChatGPT: Extracted session ID from href (c format): ${sessionId}`);
           return sessionId;
         }
       }
@@ -2871,7 +2871,7 @@ export class BatchCapture {
         const sessionId = chatMatch[1];
         // 过滤掉无效ID
         if (sessionId && sessionId !== 'new' && sessionId.length > 4) {
-          console.log(`[OmniContext] ChatGPT: Extracted session ID from href (chat format): ${sessionId}`);
+          console.log(`[ContextDrop] ChatGPT: Extracted session ID from href (chat format): ${sessionId}`);
           return sessionId;
         }
       }
@@ -2882,7 +2882,7 @@ export class BatchCapture {
                    element.getAttribute('data-session-id') ||
                    element.getAttribute('data-conversation-id');
     if (dataId && dataId.length > 4) {
-      console.log(`[OmniContext] ChatGPT: Extracted session ID from data attribute: ${dataId}`);
+      console.log(`[ContextDrop] ChatGPT: Extracted session ID from data attribute: ${dataId}`);
       return dataId;
     }
 
@@ -3029,13 +3029,13 @@ export class BatchCapture {
     for (const selector of rootSelectors) {
       root = document.querySelector(selector);
       if (root) {
-        console.log(`[OmniContext] Found ChatGPT message root: ${selector}`);
+        console.log(`[ContextDrop] Found ChatGPT message root: ${selector}`);
         break;
       }
     }
 
     if (!root) {
-      console.warn('[OmniContext] ChatGPT message container not found');
+      console.warn('[ContextDrop] ChatGPT message container not found');
       return this.countChatgptMessages();
     }
 
@@ -3043,11 +3043,11 @@ export class BatchCapture {
     const container = this.findScrollableContainer(root);
 
     if (!container) {
-      console.warn('[OmniContext] No scrollable ChatGPT message container found');
+      console.warn('[ContextDrop] No scrollable ChatGPT message container found');
       return this.countChatgptMessages();
     }
 
-    console.log(`[OmniContext] Scrolling ChatGPT message container`);
+    console.log(`[ContextDrop] Scrolling ChatGPT message container`);
 
     // 滚动到顶部加载历史
     let lastHeight = container.scrollHeight;
@@ -3059,7 +3059,7 @@ export class BatchCapture {
       await this.sleep(500);
 
       if (this.isCancelled) {
-        console.log('[OmniContext] ChatGPT scroll cancelled');
+        console.log('[ContextDrop] ChatGPT scroll cancelled');
         return messageCount;
       }
 
@@ -3069,7 +3069,7 @@ export class BatchCapture {
         lastHeight = container.scrollHeight;
         noChangeCount = 0;
         messageCount = this.countChatgptMessages();
-        console.log(`[OmniContext] ChatGPT history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
+        console.log(`[ContextDrop] ChatGPT history loaded, scrollHeight: ${lastHeight}, messages: ${messageCount}`);
       }
     }
 

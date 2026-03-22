@@ -1,11 +1,11 @@
-# OmniContext Python SDK
+# ContextDrop Python SDK
 
-用于与 OmniContext 本地服务交互的 Python 客户端库。
+用于与 ContextDrop 本地服务交互的 Python 客户端库。
 
 ## 安装
 
 ```bash
-pip install omnicontext
+pip install contextdrop
 ```
 
 ## 快速开始
@@ -13,14 +13,14 @@ pip install omnicontext
 ### 初始化客户端
 
 ```python
-import omnicontext
+import contextdrop
 
 # 连接本地服务（默认 127.0.0.1:8765）
-client = omnicontext.Client()
+client = contextdrop.Client()
 
 # 检查连接
 if client.is_connected():
-    print("✅ 已连接到 OmniContext 服务")
+    print("✅ 已连接到 ContextDrop 服务")
 ```
 
 ### 读取会话
@@ -148,11 +148,11 @@ class Memory:
 ## 错误处理
 
 ```python
-from omnicontext import OmniContextError
+from contextdrop import ContextDropError
 
 try:
     session = client.get_session("invalid-id")
-except OmniContextError as e:
+except ContextDropError as e:
     print(f"错误: {e}")
 ```
 

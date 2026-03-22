@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OmniContext SDK 使用示例
+ContextDrop SDK 使用示例
 
 运行前请确保本地服务器已启动:
     cd server
@@ -12,7 +12,7 @@ import os
 # 添加 SDK 到 path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from omnicontext import Client, OmniContextError
+from contextdrop import Client, ContextDropError
 
 
 def main():
@@ -22,11 +22,11 @@ def main():
     # 检查连接
     print("🔍 检查服务器连接...")
     if not client.is_connected():
-        print("❌ 无法连接到 OmniContext 服务器")
+        print("❌ 无法连接到 ContextDrop 服务器")
         print("   请先启动服务器: cd server && python main.py")
         return
 
-    print("✅ 已连接到 OmniContext 服务\n")
+    print("✅ 已连接到 ContextDrop 服务\n")
 
     # 获取统计信息
     print("📊 统计信息:")

@@ -390,7 +390,7 @@ async function refreshCurrentPlatform(): Promise<void> {
 
           // Then query the real status
           const response = await chrome.tabs.sendMessage(tab.id, { type: 'AUTO_CAPTURE_STATUS' });
-          console.log('[OmniContext] Auto capture status from content script:', response);
+          console.log('[ContextDrop] Auto capture status from content script:', response);
 
           // Only consider connected if:
           // 1. Content script reports enabled
@@ -405,7 +405,7 @@ async function refreshCurrentPlatform(): Promise<void> {
             updateBatchCaptureProgress(batchResponse.progress);
           }
         } catch (e) {
-          console.log('[OmniContext] Content script not ready or no connection:', e);
+          console.log('[ContextDrop] Content script not ready or no connection:', e);
           isReallyConnected = false;
         }
       }
@@ -512,21 +512,21 @@ async function init() {
   // Listen for side panel becoming visible (user reopens side panel)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      console.log('[OmniContext] Side panel visible, refreshing platform detection');
+      console.log('[ContextDrop] Side panel visible, refreshing platform detection');
       refreshCurrentPlatform();
     }
   });
 
   // Listen for tab changes (user switches to different tab)
   chrome.tabs.onActivated.addListener(() => {
-    console.log('[OmniContext] Tab changed, refreshing platform detection');
+    console.log('[ContextDrop] Tab changed, refreshing platform detection');
     refreshCurrentPlatform();
   });
 
   // Listen for URL changes in current tab
   chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
     if (changeInfo.url && tab.active) {
-      console.log('[OmniContext] URL changed, refreshing platform detection');
+      console.log('[ContextDrop] URL changed, refreshing platform detection');
       refreshCurrentPlatform();
     }
   });
@@ -617,23 +617,23 @@ async function loadSessions() {
           messageCount: s.messages?.length || 0,
           tags: s.tags,
         }));
-        console.log('[OmniContext] Loaded sessions from server:', sessions.length);
+        console.log('[ContextDrop] Loaded sessions from server:', sessions.length);
       } else {
-        console.warn('[OmniContext] Failed to load from server, falling back to local');
+        console.warn('[ContextDrop] Failed to load from server, falling back to local');
         sessions = await sessionStorage.getAllSessions();
       }
     } catch (e) {
-      console.error('[OmniContext] Error loading from server:', e);
+      console.error('[ContextDrop] Error loading from server:', e);
       sessions = await sessionStorage.getAllSessions();
     }
   } else {
     sessions = await sessionStorage.getAllSessions();
-    console.log('[OmniContext] Loaded sessions from local storage:', sessions.length);
+    console.log('[ContextDrop] Loaded sessions from local storage:', sessions.length);
   }
 
   // 规范化 platform 值（统一转为小写，解决历史数据大小写不一致问题）
   const rawPlatforms = new Set(sessions.map(s => s.platform));
-  console.log('[OmniContext] Raw platforms before normalization:', Array.from(rawPlatforms));
+  console.log('[ContextDrop] Raw platforms before normalization:', Array.from(rawPlatforms));
 
   sessions = sessions.map(s => ({
     ...s,
@@ -641,7 +641,7 @@ async function loadSessions() {
   }));
 
   const normalizedPlatforms = new Set(sessions.map(s => s.platform));
-  console.log('[OmniContext] Platforms after normalization:', Array.from(normalizedPlatforms));
+  console.log('[ContextDrop] Platforms after normalization:', Array.from(normalizedPlatforms));
 
   allSessions = sessions;
 
@@ -1441,9 +1441,9 @@ async function handleBatchCaptureStart() {
         await chrome.runtime.sendMessage({ type: 'BATCH_CAPTURE_RELEASE_LOCK' });
         // 显示友好提示
         if (currentPlatform === 'yuanbao') {
-          showToast('💡 请在元宝页面中点击左侧菜单栏打开元宝的会话列表，OmniContext才能捕获到会话哦~');
+          showToast('💡 请在元宝页面中点击左侧菜单栏打开元宝的会话列表，ContextDrop才能捕获到会话哦~');
         } else {
-          showToast('💡 请在 DeepSeek 页面中点击左上角菜单按钮打开会话历史列表，OmniContext才能捕获到会话哦~');
+          showToast('💡 请在 DeepSeek 页面中点击左上角菜单按钮打开会话历史列表，ContextDrop才能捕获到会话哦~');
         }
         return;
       }
@@ -1467,9 +1467,9 @@ async function handleBatchCaptureStart() {
       await chrome.runtime.sendMessage({ type: 'BATCH_CAPTURE_RELEASE_LOCK' });
       // 针对元宝/DeepSeek"请打开会话列表侧边栏"显示特殊提示
       if (currentPlatform === 'yuanbao' && response.error?.includes('请打开会话列表侧边栏')) {
-        showToast('💡 请在元宝页面中点击左侧菜单栏打开元宝的会话列表，OmniContext才能捕获到会话哦~');
+        showToast('💡 请在元宝页面中点击左侧菜单栏打开元宝的会话列表，ContextDrop才能捕获到会话哦~');
       } else if (currentPlatform === 'deepseek' && response.error?.includes('请打开会话列表侧边栏')) {
-        showToast('💡 请在 DeepSeek 页面中点击左上角菜单按钮打开会话历史列表，OmniContext才能捕获到会话哦~');
+        showToast('💡 请在 DeepSeek 页面中点击左上角菜单按钮打开会话历史列表，ContextDrop才能捕获到会话哦~');
       } else {
         showToast(response.error || '启动失败');
       }
