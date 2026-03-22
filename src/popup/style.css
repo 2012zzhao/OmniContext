@@ -163,10 +163,12 @@ body {
   border-radius: 50%;
   margin-right: 4px;
   vertical-align: middle;
+  transition: background-color 0.2s ease;
 }
 
+/* 连接状态下使用JS设置的平台颜色，不再用固定绿色 */
 .status-dot.connected {
-  background-color: #34c759;
+  /* 颜色由JS根据平台动态设置 */
 }
 
 .status-text {
@@ -176,7 +178,7 @@ body {
 }
 
 .status-text.connected {
-  color: #34c759;
+  /* 文字颜色也跟随平台颜色（由JS设置） */
 }
 
 /* Assistant Actions - Two buttons layout */
