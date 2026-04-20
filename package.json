@@ -1,6 +1,6 @@
 {
   "name": "contextdrop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "跨平台AI对话上下文管理工具 - ContextDrop",
   "main": "index.js",
   "scripts": {

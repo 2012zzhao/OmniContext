@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ContextDrop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "用于捕获和注入AI对话记录的浏览器插件，帮助用户在不同AI助手之间流转上下文记忆",
   "commands": {
     "_execute_action": {
