@@ -30,7 +30,7 @@
 
 ## 功能演示
 
-### 自动捕获会话 ———— 你只管聊，我来记录
+### ① 自动捕获会话 ———— 你只管聊，我来记录
 
 打开「自动捕获」开关，ContextDrop会自动捕获会话记录，并将AI记忆缓存到本地，无需手动操作
 
@@ -38,7 +38,7 @@
   <img src="assets/demo_auto-capture-memory.gif" width="720" alt="自动捕获会话演示：开启自动捕获后，ContextDrop 将对话记忆缓存到本地">
 </p>
 
-### 一键注入记忆 ———— 你和AI的故事，再也不用从头说起
+### ② 一键注入记忆 ———— 你和AI的故事，再也不用从头说起
 
 找到相关记忆卡片，点击右侧「🧠」按钮，即可将AI记忆一键注入当前对话，实现跨会话、跨平台流转
 
@@ -46,7 +46,7 @@
   <img src="assets/demo_inject-ai-memory.gif" width="720" alt="一键注入记忆演示：点击记忆卡片「🧠」将记忆注入当前对话">
 </p>
 
-### 批量捕获会话 ———— 定期批量归档即可，无需逐个操作
+### ③ 批量捕获会话 ———— 定期批量归档即可，无需逐个操作
 
 点击「批量捕获」按钮，ContextDrop会扫描整个会话列表，将AI助手的所有记忆一键归档保存
 
@@ -79,18 +79,22 @@
 
 ---
 
-## 支持平台
+## 最新动态
+
+---
+
+## 平台适配
 
 
 | 平台       | 状态  | 备注   |
 | -------- | --- | ---- |
-| 豆包       | ✅   | 完整支持 |
-| 元宝       | ✅   | 完整支持 |
-| Claude   | ✅   | 完整支持 |
-| DeepSeek | ✅   | 完整支持 |
-| Kimi     | ✅   | 完整支持 |
-| Gemini   | ✅   | 完整支持 |
-| ChatGPT  | ✅   | 完整支持 |
+| [豆包](https://www.doubao.com/)       | ✅   | 现已支持网页版AI助手 |
+| [元宝](https://yuanbao.tencent.com/)       | ✅   | 现已支持网页版AI助手 |
+| [Claude](https://claude.ai/)   | ✅   | 现已支持网页版AI助手 |
+| [DeepSeek](https://chat.deepseek.com/) | ✅   | 现已支持网页版AI助手 |
+| [Kimi](https://www.kimi.com/)     | ✅   | 现已支持网页版AI助手 |
+| [Gemini](https://gemini.google.com/)   | ✅   | 现已支持网页版AI助手 |
+| [ChatGPT](https://chatgpt.com/)  | ✅   | 现已支持网页版AI助手 |
 
 
 ---
