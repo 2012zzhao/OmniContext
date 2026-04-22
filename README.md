@@ -68,7 +68,7 @@
 
 ### 第二步：安装插件
 
-1. 打开 Chrome 浏览器，地址栏输入 `chrome://extensions/` 并回车
+1. 打开 Chrome（或 Edge）浏览器，地址栏输入 `chrome://extensions/`（Edge 用户请输入 `edge://extensions/`）并回车
 2. 开启页面右上角的 **「开发者模式（Developer mode）」** 开关
 3. 点击左上角的 **「加载已解压的扩展程序（Load unpacked）」** 按钮
 4. 在弹出的文件夹选择器中，选中刚才解压出来的 **ContextDrop** 文件夹

@@ -68,7 +68,7 @@ Go to the [Releases page](https://github.com/Jackie2049/ContextDrop/releases), d
 
 ### Step 2: Install the Extension
 
-1. Open Chrome or Edge browser, type `chrome://extensions/` (or `edge://extensions/`) in the address bar and press Enter
+1. Open Chrome or Edge browser, type `chrome://extensions/` (Edge users: `edge://extensions/`) in the address bar and press Enter
 2. Enable the **"Developer mode"** toggle in the top right corner
 3. Click the **"Load unpacked"** button in the top left
 4. In the folder picker, select the extracted **ContextDrop** folder
