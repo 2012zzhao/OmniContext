@@ -17,6 +17,10 @@
   <img src="https://img.shields.io/badge/Chrome%20Extension-MV3-green.svg?logo=googlechrome" alt="Chrome Extension MV3">
 </p>
 
+<p align="center">
+  <a href="./README.md">中文</a> | <a href="./README.en.md">English</a>
+</p>
+
 **ContextDrop**是一款专注于**AI助手记忆管理**的浏览器插件。它可以：<br>
 
 💾 **捕获会话**：用户使用AI助手时，插件自动保存用户和AI助手之间的会话记录<br> 

@@ -17,6 +17,10 @@
   <img src="https://img.shields.io/badge/Chrome%20Extension-MV3-green.svg?logo=googlechrome" alt="Chrome Extension MV3">
 </p>
 
+<p align="center">
+  <a href="./README.md">中文</a> | <a href="./README.en.md">English</a>
+</p>
+
 **ContextDrop** is a browser extension focused on **AI assistant memory management**. It can:<br>
 
 💾 **Capture Sessions**: Automatically saves conversation records between you and AI assistants while you chat<br>
